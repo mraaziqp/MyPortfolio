@@ -114,6 +114,96 @@ export interface SyncLog {
   syncedAt: string;
 }
 
+export interface AuditReceipt {
+  receiptId: string;
+  timestamp: string; // ISO 8601
+  unixTimestamp: number;
+  actionType: 'CV_INGEST' | 'JARVIS_ACTION' | 'CONTACT_INQUIRY' | 'TELEMETRY_EXPORT' | 'PORTAL_SYNC' | 'FLEET_PROBE' | 'CONFIG_UPDATE';
+  caller: string;
+  status: 'SUCCESS' | 'FAILED' | 'UNAUTHORIZED';
+  statusCode: number;
+  latencyMs: number;
+  payloadDigest: string; // sha256:...
+  receiptSignature: string;
+  summary: string;
+  details?: Record<string, any>;
+}
+
+export interface EcosystemAppNode {
+  id: string;
+  name: string;
+  slug: string;
+  category: 'ai_core' | 'saas_platform' | 'productivity' | 'consumer';
+  status: 'operational' | 'degraded' | 'offline' | 'checking';
+  localUrl?: string;
+  productionUrl: string;
+  healthEndpoint?: string;
+  latencyMs?: number;
+  lastChecked?: string;
+  description: string;
+  portalEmbedUrl?: string;
+  capabilities: string[];
+}
+
+export interface DashboardPortalManifest {
+  manifestVersion: string;
+  appName: string;
+  appSlug: string;
+  primaryDomain: string;
+  subdomainUrl: string;
+  embedPortalUrl: string;
+  status: 'operational' | 'degraded' | 'offline';
+  lastSeenAt: string;
+  jarvisBridge: {
+    enabled: boolean;
+    webhookConfigured: boolean;
+    masterKeyPrefix: string;
+    endpoints: {
+      ping: string;
+      schema: string;
+      state: string;
+      action: string;
+      events: string;
+      portal: string;
+      export: string;
+      ingest: string;
+      manager: string;
+    };
+  };
+  metrics: {
+    profileViews: number;
+    totalInteractions: number;
+    activeInquiries: number;
+    totalExperiences: number;
+    totalProjects: number;
+    totalSkills: number;
+    cvVersion: string;
+  };
+  widgets: {
+    id: string;
+    title: string;
+    type: 'metric' | 'table' | 'feed' | 'action_card';
+    size: 'sm' | 'md' | 'lg' | 'full';
+  }[];
+  allowableActions: {
+    action: string;
+    description: string;
+    params: Record<string, string>;
+  }[];
+}
+
+export interface DashboardExportBundle {
+  exportId: string;
+  exportedAt: string;
+  unixTimestamp: number;
+  cvData: CvSyncPayload;
+  telemetry: TelemetryExportResponse;
+  receipts: AuditReceipt[];
+  manifest: DashboardPortalManifest;
+  receiptSignature: string;
+  sha256Digest: string;
+}
+
 export interface ProjectTelemetry {
   id: string;
   projectSlug: string;

@@ -72,6 +72,17 @@ export const Navbar: React.FC<NavbarProps> = ({
             Live Sync & Architecture
           </button>
           <button
+            onClick={() => setActiveTab('dashboard-manager')}
+            className={`transition-colors py-1 flex items-center gap-1.5 ${
+              activeTab === 'dashboard-manager'
+                ? 'text-blue-400 font-semibold border-b-2 border-blue-500'
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
+            Ecosystem Fleet
+          </button>
+          <button
             onClick={() => setActiveTab('infrastructure')}
             className={`transition-colors py-1 ${
               activeTab === 'infrastructure'
@@ -141,6 +152,12 @@ export const Navbar: React.FC<NavbarProps> = ({
           className={`px-2 py-1 rounded ${activeTab === 'architecture' ? 'text-blue-400 font-semibold bg-slate-800' : ''}`}
         >
           Live Sync
+        </button>
+        <button
+          onClick={() => setActiveTab('dashboard-manager')}
+          className={`px-2 py-1 rounded ${activeTab === 'dashboard-manager' ? 'text-blue-400 font-semibold bg-slate-800' : ''}`}
+        >
+          Fleet Hub
         </button>
         <button
           onClick={() => setActiveTab('infrastructure')}

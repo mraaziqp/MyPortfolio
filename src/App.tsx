@@ -5,6 +5,7 @@ import { ProjectShowcase } from './components/projects/ProjectShowcase';
 import { ExperienceTimeline } from './components/experience/ExperienceTimeline';
 import { TechStackMatrix } from './components/skills/TechStackMatrix';
 import { ApiHubInspector } from './components/api-hub/ApiHubInspector';
+import { EcosystemDashboardManager } from './components/dashboard/EcosystemDashboardManager';
 import { ContactSection } from './components/contact/ContactSection';
 import { Footer } from './components/layout/Footer';
 import {
@@ -26,6 +27,17 @@ export default function App() {
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
   const [syncSuccessToast, setSyncSuccessToast] = useState<string | null>(null);
   const [telemetryStats, setTelemetryStats] = useState(getTelemetryStats);
+  const [isPortalMode, setIsPortalMode] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('portal') === 'true' || params.get('embed') === 'true') {
+        setIsPortalMode(true);
+        setActiveTab('dashboard-manager');
+      }
+    }
+  }, []);
 
   // Periodic telemetry refresh
   useEffect(() => {
@@ -78,6 +90,18 @@ export default function App() {
     setIsSyncing(false);
   };
 
+  if (isPortalMode) {
+    return (
+      <div className="min-h-screen bg-[#0b0f17] text-slate-200 font-sans p-4 sm:p-6">
+        <EcosystemDashboardManager
+          cvData={cvData}
+          onUpdateCvData={handleUpdateCvData}
+          telemetryStats={telemetryStats}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#0b0f17] text-slate-200 font-sans relative overflow-x-hidden flex flex-col selection:bg-blue-600 selection:text-white">
       {/* Subtle, understated enterprise backdrop */}
@@ -98,7 +122,11 @@ export default function App() {
       {/* Header Navigation */}
       <Navbar
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={(tab) => {
+          setActiveTab(tab);
+          const el = document.getElementById(tab);
+          if (el) el.scrollIntoView({ behavior: 'smooth' });
+        }}
         isSyncing={isSyncing}
         onTriggerQuickSync={handleTriggerQuickSync}
         lastSyncedAgo="Just now"
@@ -133,6 +161,20 @@ export default function App() {
                 if (el) el.scrollIntoView({ behavior: 'smooth' });
               }}
               telemetryStats={telemetryStats}
+            />
+          </div>
+
+          {/* Centralized Ecosystem Dashboard Manager (Multi-App Control Hub) */}
+          <div id="dashboard-manager">
+            <EcosystemDashboardManager
+              cvData={cvData}
+              onUpdateCvData={handleUpdateCvData}
+              telemetryStats={telemetryStats}
+              onOpenSyncInspector={() => {
+                setActiveTab('architecture');
+                const el = document.getElementById('sync-inspector');
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+              }}
             />
           </div>
 

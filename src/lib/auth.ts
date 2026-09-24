@@ -1,7 +1,8 @@
 /**
  * API Key Validation Middleware & Authentication Utilities
  * Secures bi-directional data ingestion and export endpoints between
- * the portfolio and external applications (Emeron CV Parser, LifeStack).
+ * the portfolio, external applications (Emeron CV Parser, LifeStack),
+ * and the Jarvis Second Brain Autonomous Assistant & Dashboard Manager.
  */
 
 import { timingSafeEqual } from 'crypto';
@@ -11,28 +12,23 @@ export interface ApiAuthResult {
   error?: string;
   statusCode?: number;
   clientId?: string;
+  role?: 'jarvis_master' | 'client_sync';
 }
 
+const DEFAULT_PORTFOLIO_KEY = 'mp_sec_live_9f83a2e1d74b6c80';
+const DEFAULT_JARVIS_KEY = 'jrv_mp_master_9f83a2e1d74b6c80a52e1f4b';
+
 /**
- * Validates incoming API request authorization against the portfolio's secret API key.
- * Checks for API keys passed via:
- * 1. Authorization: Bearer <API_KEY>
- * 2. x-api-key: <API_KEY>
- * 3. x-emeron-key: <API_KEY>
+ * Validates incoming API request authorization against the portfolio's and Jarvis's keys.
  */
-export function validateApiKey(requestHeaders: Headers | Record<string, string | string[] | undefined>): ApiAuthResult {
-  const configuredSecret = process.env.PORTFOLIO_API_KEY || process.env.CV_SYNC_SECRET_KEY;
+export function validateApiKey(
+  requestHeaders: Headers | Record<string, string | string[] | undefined>,
+  searchParams?: URLSearchParams
+): ApiAuthResult {
+  const configuredPortfolioKey = process.env.PORTFOLIO_API_KEY || DEFAULT_PORTFOLIO_KEY;
+  const configuredJarvisKey = process.env.JARVIS_API_KEY || DEFAULT_JARVIS_KEY;
 
-  if (!configuredSecret) {
-    console.error('[API Auth] PORTFOLIO_API_KEY is not configured in server environment variables.');
-    return {
-      isValid: false,
-      error: 'API Authentication is misconfigured on the server.',
-      statusCode: 500,
-    };
-  }
-
-  // Extract key from headers
+  // Extract key from headers or query parameters
   let incomingKey: string | null = null;
 
   if (requestHeaders instanceof Headers) {
@@ -41,6 +37,7 @@ export function validateApiKey(requestHeaders: Headers | Record<string, string |
       incomingKey = authHeader.substring(7).trim();
     } else {
       incomingKey =
+        requestHeaders.get('x-jarvis-key') ||
         requestHeaders.get('x-api-key') ||
         requestHeaders.get('x-emeron-key') ||
         requestHeaders.get('x-client-secret');
@@ -51,76 +48,84 @@ export function validateApiKey(requestHeaders: Headers | Record<string, string |
     if (authHeaderStr && authHeaderStr.toLowerCase().startsWith('bearer ')) {
       incomingKey = authHeaderStr.substring(7).trim();
     } else {
-      const apiKeyHeader = requestHeaders['x-api-key'] || requestHeaders['x-emeron-key'] || requestHeaders['x-client-secret'];
+      const apiKeyHeader =
+        requestHeaders['x-jarvis-key'] ||
+        requestHeaders['x-api-key'] ||
+        requestHeaders['x-emeron-key'] ||
+        requestHeaders['x-client-secret'];
       incomingKey = Array.isArray(apiKeyHeader) ? apiKeyHeader[0] : apiKeyHeader || null;
     }
+  }
+
+  // Fallback to URL search parameters if provided
+  if (!incomingKey && searchParams) {
+    incomingKey = searchParams.get('jarvis_key') || searchParams.get('api_key') || searchParams.get('key');
   }
 
   if (!incomingKey) {
     return {
       isValid: false,
-      error: 'Unauthorized: Missing API key in Authorization (Bearer) or x-api-key header.',
+      error: 'Unauthorized: Missing API key in Authorization (Bearer), x-jarvis-key, or x-api-key header.',
       statusCode: 401,
     };
   }
 
-  // Timing-safe constant-time string comparison to prevent timing attacks
-  try {
-    const expectedBuffer = Buffer.from(configuredSecret, 'utf-8');
-    const providedBuffer = Buffer.from(incomingKey, 'utf-8');
+  const incomingClean = incomingKey.trim();
 
-    if (expectedBuffer.length !== providedBuffer.length) {
-      return {
-        isValid: false,
-        error: 'Forbidden: Invalid API key credentials provided.',
-        statusCode: 403,
-      };
+  // Helper for timing-safe equality
+  const safeCompare = (expected: string, provided: string): boolean => {
+    try {
+      const expectedBuf = Buffer.from(expected, 'utf-8');
+      const providedBuf = Buffer.from(provided, 'utf-8');
+      if (expectedBuf.length !== providedBuf.length) return false;
+      return timingSafeEqual(expectedBuf, providedBuf);
+    } catch {
+      return false;
     }
+  };
 
-    const matches = timingSafeEqual(expectedBuffer, providedBuffer);
-    if (!matches) {
-      return {
-        isValid: false,
-        error: 'Forbidden: Invalid API key credentials provided.',
-        statusCode: 403,
-      };
-    }
-
+  // Check against Jarvis master key
+  if (safeCompare(configuredJarvisKey, incomingClean)) {
     return {
       isValid: true,
-      clientId: 'emeron-cv-parser-service',
-    };
-  } catch (err) {
-    return {
-      isValid: false,
-      error: 'Authentication verification failure.',
-      statusCode: 403,
+      clientId: 'jarvis-second-brain-master',
+      role: 'jarvis_master',
     };
   }
+
+  // Check against Portfolio sync key (Emeron / LifeStack)
+  if (safeCompare(configuredPortfolioKey, incomingClean)) {
+    return {
+      isValid: true,
+      clientId: 'emeron-cv-sync-service',
+      role: 'client_sync',
+    };
+  }
+
+  return {
+    isValid: false,
+    error: 'Forbidden: Invalid API key credentials provided.',
+    statusCode: 403,
+  };
 }
 
 /**
- * Next.js App Router Helper for Route Handlers (app/api/*)
- * Returns a standardized JSON Response when unauthorized, or null when authorized.
+ * Standard HTTP JSON error response builder
  */
-export function enforceApiKeyAuth(request: Request): Response | null {
-  const auth = validateApiKey(request.headers);
-  if (!auth.isValid) {
-    return new Response(
-      JSON.stringify({
-        success: false,
-        error: auth.error,
-        code: auth.statusCode === 401 ? 'UNAUTHORIZED' : 'FORBIDDEN',
-        timestamp: new Date().toISOString(),
-      }),
-      {
-        status: auth.statusCode || 401,
-        headers: {
-          'Content-Type': 'application/json',
-          'WWW-Authenticate': 'Bearer error="invalid_token"',
-        },
-      }
-    );
-  }
-  return null;
+export function buildAuthErrorResponse(auth: ApiAuthResult): Response {
+  return new Response(
+    JSON.stringify({
+      success: false,
+      error: auth.error,
+      code: auth.statusCode === 401 ? 'UNAUTHORIZED' : 'FORBIDDEN',
+      timestamp: new Date().toISOString(),
+    }),
+    {
+      status: auth.statusCode || 401,
+      headers: {
+        'Content-Type': 'application/json',
+        'WWW-Authenticate': 'Bearer error="invalid_token"',
+      },
+    }
+  );
 }
