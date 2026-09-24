@@ -14,11 +14,10 @@ import {
   getStoredSyncLogs,
   addSyncLog,
   getTelemetryStats,
-  recordProjectInteraction,
 } from './lib/store';
 import { CvSyncPayload, SyncLog } from './types';
 import { SHOWCASE_PROJECTS } from './data/initialData';
-import { RefreshCw, CheckCircle2, Terminal, Sparkles, Activity } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
 
 export default function App() {
   const [cvData, setCvData] = useState<CvSyncPayload>(getCachedCvData);
@@ -43,15 +42,15 @@ export default function App() {
   useEffect(() => {
     const timer = setInterval(() => {
       setTelemetryStats(getTelemetryStats());
-    }, 4000);
+    }, 5000);
     return () => clearInterval(timer);
   }, []);
 
   const handleUpdateCvData = (newData: CvSyncPayload) => {
     setCvData(newData);
     saveCachedCvData(newData);
-    setSyncSuccessToast(`Synchronized ${newData.fullName}'s CV cache (${newData.version}) via Emeron webhook!`);
-    setTimeout(() => setSyncSuccessToast(null), 4000);
+    setSyncSuccessToast(`Profile synchronized (${newData.version}) via Emeron pipeline.`);
+    setTimeout(() => setSyncSuccessToast(null), 3500);
   };
 
   const handleRefreshLogs = () => {
@@ -61,7 +60,7 @@ export default function App() {
 
   const handleTriggerQuickSync = async () => {
     setIsSyncing(true);
-    await new Promise((r) => setTimeout(r, 700));
+    await new Promise((r) => setTimeout(r, 600));
 
     const updated: CvSyncPayload = {
       ...cvData,
@@ -92,7 +91,7 @@ export default function App() {
 
   if (isPortalMode) {
     return (
-      <div className="min-h-screen bg-[#0b0f17] text-slate-200 font-sans p-4 sm:p-6">
+      <div className="min-h-screen bg-[#090d16] text-slate-200 font-sans p-4 sm:p-6">
         <EcosystemDashboardManager
           cvData={cvData}
           onUpdateCvData={handleUpdateCvData}
@@ -103,18 +102,17 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#0b0f17] text-slate-200 font-sans relative overflow-x-hidden flex flex-col selection:bg-blue-600 selection:text-white">
-      {/* Subtle, understated enterprise backdrop */}
+    <div className="min-h-screen bg-[#090d16] text-slate-200 font-sans relative overflow-x-hidden flex flex-col selection:bg-blue-600 selection:text-white">
+      {/* Clean, understated executive ambient background */}
       <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute top-0 inset-x-0 h-96 bg-gradient-to-b from-slate-900/50 to-transparent"></div>
-        <div className="absolute inset-0 bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:32px_32px] opacity-25"></div>
+        <div className="absolute top-0 inset-x-0 h-[500px] bg-gradient-to-b from-slate-900/40 via-slate-900/10 to-transparent"></div>
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[350px] bg-blue-900/5 blur-[120px] rounded-full"></div>
       </div>
 
       {/* Sync Toast Notification */}
       {syncSuccessToast && (
-        <div className="fixed bottom-6 right-6 z-50 p-4 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 text-sm shadow-xl backdrop-blur-md flex items-center gap-3 animate-in fade-in slide-in-from-bottom-3 duration-300">
-          <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-          <CheckCircle2 size={18} className="text-blue-400" />
+        <div className="fixed bottom-6 right-6 z-50 p-3.5 rounded-lg bg-slate-900 border border-slate-700 text-slate-200 text-xs shadow-xl backdrop-blur-md flex items-center gap-2.5 animate-in fade-in slide-in-from-bottom-3 duration-200">
+          <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
           <span>{syncSuccessToast}</span>
         </div>
       )}
@@ -132,8 +130,8 @@ export default function App() {
         lastSyncedAgo="Just now"
       />
 
-      {/* Main Content Area */}
-      <main className="relative z-10 flex-1 max-w-7xl mx-auto w-full px-6 sm:px-8 py-8 space-y-12">
+      {/* Main Content Container with standard responsive padding */}
+      <main className="relative z-10 flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 space-y-16 sm:space-y-24">
         {/* Top Hero Section */}
         <HeroSection
           cvData={cvData}
@@ -149,10 +147,10 @@ export default function App() {
           }}
         />
 
-        {/* Tab-driven / full-view sections */}
-        <div className="space-y-20">
+        {/* Sections */}
+        <div className="space-y-16 sm:space-y-24">
           {/* Projects Showcase */}
-          <div id="portfolio">
+          <section id="portfolio" className="border-t border-slate-800/60 pt-12 sm:pt-16">
             <ProjectShowcase
               projects={SHOWCASE_PROJECTS}
               onOpenSyncInspector={() => {
@@ -162,10 +160,10 @@ export default function App() {
               }}
               telemetryStats={telemetryStats}
             />
-          </div>
+          </section>
 
-          {/* Centralized Ecosystem Dashboard Manager (Multi-App Control Hub) */}
-          <div id="dashboard-manager">
+          {/* Centralized Ecosystem Dashboard Manager */}
+          <section id="dashboard-manager" className="border-t border-slate-800/60 pt-12 sm:pt-16">
             <EcosystemDashboardManager
               cvData={cvData}
               onUpdateCvData={handleUpdateCvData}
@@ -176,18 +174,18 @@ export default function App() {
                 if (el) el.scrollIntoView({ behavior: 'smooth' });
               }}
             />
-          </div>
+          </section>
 
           {/* Dynamic Experience Timeline */}
-          <div id="experience">
+          <section id="experience" className="border-t border-slate-800/60 pt-12 sm:pt-16">
             <ExperienceTimeline
               experiences={cvData.experiences}
               lastSyncedAt={cvData.rawCvMetadata?.parsedAt}
             />
-          </div>
+          </section>
 
-          {/* Live Profile Sync & Data Architecture (Emeron Integration) */}
-          <div id="architecture">
+          {/* Live Profile Sync & Data Architecture */}
+          <section id="architecture" className="border-t border-slate-800/60 pt-12 sm:pt-16">
             <ApiHubInspector
               cvData={cvData}
               onUpdateCvData={handleUpdateCvData}
@@ -195,21 +193,21 @@ export default function App() {
               onRefreshLogs={handleRefreshLogs}
               telemetryStats={telemetryStats}
             />
-          </div>
+          </section>
 
           {/* Enterprise IT & Infrastructure Matrix */}
-          <div id="infrastructure">
+          <section id="infrastructure" className="border-t border-slate-800/60 pt-12 sm:pt-16">
             <TechStackMatrix
               skills={cvData.skills}
               certifications={cvData.certifications}
               education={cvData.education}
             />
-          </div>
+          </section>
 
           {/* Contact Section */}
-          <div id="contact">
+          <section id="contact" className="border-t border-slate-800/60 pt-12 sm:pt-16 pb-12">
             <ContactSection />
-          </div>
+          </section>
         </div>
       </main>
 

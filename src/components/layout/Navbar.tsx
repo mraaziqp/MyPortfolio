@@ -1,5 +1,5 @@
-import React from 'react';
-import { RefreshCw, CheckCircle2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { RefreshCw, Menu, X, ArrowUpRight } from 'lucide-react';
 
 interface NavbarProps {
   activeTab: string;
@@ -14,164 +14,122 @@ export const Navbar: React.FC<NavbarProps> = ({
   setActiveTab,
   isSyncing,
   onTriggerQuickSync,
-  lastSyncedAgo,
 }) => {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  const navItems = [
+    { id: 'portfolio', label: 'Solutions' },
+    { id: 'experience', label: 'Experience' },
+    { id: 'dashboard-manager', label: 'Fleet Hub' },
+    { id: 'architecture', label: 'Architecture' },
+    { id: 'infrastructure', label: 'Infrastructure' },
+    { id: 'contact', label: 'Contact' },
+  ];
+
+  const handleNavClick = (id: string) => {
+    setActiveTab(id);
+    setMobileMenuOpen(false);
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-slate-800 bg-[#0b0f17]/95 backdrop-blur-md transition-all">
-      <div className="max-w-7xl mx-auto flex items-center justify-between px-6 sm:px-8 py-3.5">
-        {/* Executive Brand Identity */}
-        <div className="flex items-center gap-3.5">
-          <div className="w-9 h-9 rounded-lg bg-slate-800 border border-slate-700 flex items-center justify-center font-semibold text-slate-100 text-sm tracking-normal shadow-sm">
+    <header className="sticky top-0 z-50 w-full border-b border-slate-800/80 bg-[#090d16]/95 backdrop-blur-md">
+      <div className="max-w-7xl mx-auto flex items-center justify-between px-4 sm:px-6 lg:px-8 h-16">
+        {/* Brand identity */}
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-md bg-slate-800/90 border border-slate-700/80 flex items-center justify-center font-semibold text-slate-100 text-xs tracking-tight shadow-sm shrink-0">
             MP
           </div>
-          <div>
+          <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <h1 className="text-base font-semibold tracking-tight text-white leading-none">
+              <span className="text-sm font-semibold tracking-tight text-white truncate">
                 Mohammed Parker
-              </h1>
-              <span className="hidden md:inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-800 text-blue-400 border border-slate-700">
+              </span>
+              <span className="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-slate-800 text-slate-300 border border-slate-700">
                 AWS CCP
               </span>
             </div>
-            <p className="text-xs text-slate-400 font-normal mt-0.5">
-              Senior Full-Stack Developer & Enterprise IT Specialist
+            <p className="text-[11px] text-slate-400 font-normal truncate hidden sm:block">
+              Full-Stack Developer & Enterprise IT Specialist
             </p>
           </div>
         </div>
 
-        {/* Navigation links */}
-        <nav className="hidden lg:flex items-center gap-8 text-sm font-medium">
-          <button
-            onClick={() => setActiveTab('portfolio')}
-            className={`transition-colors py-1 ${
-              activeTab === 'portfolio'
-                ? 'text-blue-400 font-semibold border-b-2 border-blue-500'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            Featured Solutions
-          </button>
-          <button
-            onClick={() => setActiveTab('experience')}
-            className={`transition-colors py-1 ${
-              activeTab === 'experience'
-                ? 'text-blue-400 font-semibold border-b-2 border-blue-500'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            Experience
-          </button>
-          <button
-            onClick={() => setActiveTab('architecture')}
-            className={`transition-colors py-1 ${
-              activeTab === 'architecture'
-                ? 'text-blue-400 font-semibold border-b-2 border-blue-500'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            Live Sync & Architecture
-          </button>
-          <button
-            onClick={() => setActiveTab('dashboard-manager')}
-            className={`transition-colors py-1 flex items-center gap-1.5 ${
-              activeTab === 'dashboard-manager'
-                ? 'text-blue-400 font-semibold border-b-2 border-blue-500'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></span>
-            Ecosystem Fleet
-          </button>
-          <button
-            onClick={() => setActiveTab('infrastructure')}
-            className={`transition-colors py-1 ${
-              activeTab === 'infrastructure'
-                ? 'text-blue-400 font-semibold border-b-2 border-blue-500'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            Enterprise Infrastructure
-          </button>
-          <button
-            onClick={() => setActiveTab('contact')}
-            className={`transition-colors py-1 ${
-              activeTab === 'contact'
-                ? 'text-blue-400 font-semibold border-b-2 border-blue-500'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            Contact
-          </button>
+        {/* Desktop Navigation */}
+        <nav className="hidden lg:flex items-center gap-1 xl:gap-2">
+          {navItems.map((item) => {
+            const isActive = activeTab === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => handleNavClick(item.id)}
+                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                  isActive
+                    ? 'text-white bg-slate-800/90 shadow-sm border border-slate-700/70 font-semibold'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
+                }`}
+              >
+                {item.label}
+              </button>
+            );
+          })}
         </nav>
 
-        {/* Live sync status badge & trigger button */}
-        <div className="flex items-center gap-3">
+        {/* Actions & Mobile Toggle */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Live Sync Status Pill */}
           <button
             onClick={onTriggerQuickSync}
             disabled={isSyncing}
             title="Synchronize profile state with Emeron live feed"
-            className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-800 border border-slate-700 text-slate-200 hover:border-slate-600 transition-all text-xs group"
+            className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-md bg-slate-900/90 hover:bg-slate-850 border border-slate-800 hover:border-slate-700 text-slate-300 text-xs transition-colors shrink-0"
           >
-            <span className="flex h-2 w-2 relative">
-              <span
-                className={`animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 ${
-                  isSyncing ? 'opacity-100' : 'opacity-60'
-                }`}
-              ></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-            </span>
-            <span className="font-medium text-slate-300 hidden sm:inline">
-              {isSyncing ? 'Syncing...' : 'Live Synced via Emeron'}
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0"></span>
+            <span className="font-medium text-[11px] sm:text-xs">
+              {isSyncing ? 'Syncing...' : 'Live Synced'}
             </span>
             <RefreshCw
-              size={13}
-              className={`text-slate-400 group-hover:text-slate-200 transition-transform ${
-                isSyncing ? 'animate-spin text-blue-400' : 'group-hover:rotate-180'
-              }`}
+              size={12}
+              className={`text-slate-400 ${isSyncing ? 'animate-spin text-blue-400' : ''}`}
             />
+          </button>
+
+          {/* Mobile Menu Button */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="lg:hidden p-1.5 rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition-colors focus:outline-none"
+            aria-label="Toggle navigation menu"
+          >
+            {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
         </div>
       </div>
 
-      {/* Mobile nav bar */}
-      <div className="lg:hidden flex items-center justify-around border-t border-slate-800 px-2 py-2 bg-slate-900 text-xs font-medium text-slate-400">
-        <button
-          onClick={() => setActiveTab('portfolio')}
-          className={`px-2 py-1 rounded ${activeTab === 'portfolio' ? 'text-blue-400 font-semibold bg-slate-800' : ''}`}
-        >
-          Solutions
-        </button>
-        <button
-          onClick={() => setActiveTab('experience')}
-          className={`px-2 py-1 rounded ${activeTab === 'experience' ? 'text-blue-400 font-semibold bg-slate-800' : ''}`}
-        >
-          Experience
-        </button>
-        <button
-          onClick={() => setActiveTab('architecture')}
-          className={`px-2 py-1 rounded ${activeTab === 'architecture' ? 'text-blue-400 font-semibold bg-slate-800' : ''}`}
-        >
-          Live Sync
-        </button>
-        <button
-          onClick={() => setActiveTab('dashboard-manager')}
-          className={`px-2 py-1 rounded ${activeTab === 'dashboard-manager' ? 'text-blue-400 font-semibold bg-slate-800' : ''}`}
-        >
-          Fleet Hub
-        </button>
-        <button
-          onClick={() => setActiveTab('infrastructure')}
-          className={`px-2 py-1 rounded ${activeTab === 'infrastructure' ? 'text-blue-400 font-semibold bg-slate-800' : ''}`}
-        >
-          IT Ops
-        </button>
-        <button
-          onClick={() => setActiveTab('contact')}
-          className={`px-2 py-1 rounded ${activeTab === 'contact' ? 'text-blue-400 font-semibold bg-slate-800' : ''}`}
-        >
-          Contact
-        </button>
-      </div>
+      {/* Mobile Collapsible Navigation Menu */}
+      {mobileMenuOpen && (
+        <div className="lg:hidden border-t border-slate-800 bg-[#090d16]/98 backdrop-blur-lg px-4 pt-3 pb-4 space-y-1 animate-in fade-in slide-in-from-top-2 duration-150">
+          {navItems.map((item) => {
+            const isActive = activeTab === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => handleNavClick(item.id)}
+                className={`w-full text-left px-3 py-2 rounded-md text-xs font-medium transition-colors flex items-center justify-between ${
+                  isActive
+                    ? 'text-white bg-slate-800 font-semibold'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
+                }`}
+              >
+                <span>{item.label}</span>
+                {isActive && <span className="w-1.5 h-1.5 rounded-full bg-blue-400"></span>}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </header>
   );
 };

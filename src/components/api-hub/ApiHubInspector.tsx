@@ -1,20 +1,12 @@
 import React, { useState } from 'react';
 import {
   Terminal,
-  RefreshCw,
-  Database,
   Key,
-  ShieldCheck,
-  CheckCircle2,
-  AlertCircle,
   Play,
   Copy,
-  ArrowRight,
-  ArrowLeftRight,
-  Sparkles,
   BarChart3,
-  Code2,
   Lock,
+  Sparkles,
 } from 'lucide-react';
 import { CvSyncPayload, SyncLog } from '../../types';
 import { addSyncLog } from '../../lib/store';
@@ -44,7 +36,6 @@ export const ApiHubInspector: React.FC<ApiHubInspectorProps> = ({
   const [lastResponse, setLastResponse] = useState<any>(null);
   const [copiedText, setCopiedText] = useState<string | null>(null);
 
-  // Editable sample payload for simulating Emeron CV Parser POST
   const [customRoleTitle, setCustomRoleTitle] = useState<string>(
     'Lead Infrastructure & AI Solutions Architect'
   );
@@ -60,11 +51,8 @@ export const ApiHubInspector: React.FC<ApiHubInspectorProps> = ({
 
   const handleSimulateEmeronSync = async () => {
     setIsExecuting(true);
+    await new Promise((r) => setTimeout(r, 550));
 
-    // Simulate network roundtrip to Ingestion API
-    await new Promise((r) => setTimeout(r, 650));
-
-    // Verify key in simulation
     const validKey = 'mp_sec_live_9f83a2e1d74b6c80';
     if (apiKeyInput.trim() !== validKey) {
       const errResponse = {
@@ -89,7 +77,6 @@ export const ApiHubInspector: React.FC<ApiHubInspectorProps> = ({
       return;
     }
 
-    // Build updated CV payload
     const updatedPayload: CvSyncPayload = {
       ...cvData,
       version: `v2.${Math.floor(Math.random() * 5) + 5}.0`,
@@ -115,14 +102,14 @@ export const ApiHubInspector: React.FC<ApiHubInspectorProps> = ({
 
     const successResponse = {
       success: true,
-      message: 'Profile data cache successfully synchronized and persisted to PostgreSQL store.',
+      message: 'Profile data cache successfully synchronized and persisted.',
       recordsUpdated: {
         experiences: updatedPayload.experiences.length,
         skillsCount: Object.values(updatedPayload.skills).flat().length,
         version: updatedPayload.version,
       },
       source: 'Emeron CV Parser Engine',
-      latencyMs: 124,
+      latencyMs: 118,
       timestamp: new Date().toISOString(),
     };
 
@@ -144,7 +131,7 @@ export const ApiHubInspector: React.FC<ApiHubInspectorProps> = ({
 
   const handleSimulateTelemetryExport = async () => {
     setIsExecuting(true);
-    await new Promise((r) => setTimeout(r, 400));
+    await new Promise((r) => setTimeout(r, 350));
 
     const exportResponse = {
       success: true,
@@ -158,10 +145,9 @@ export const ApiHubInspector: React.FC<ApiHubInspectorProps> = ({
           { slug: 'hustle-studio', name: 'Hustle Studio SaaS', views: telemetryStats.views['hustle-studio'] || 196, interactions: telemetryStats.interactions['hustle-studio'] || 49 },
         ],
         activeDeployments: 3,
-        systemStatus: 'HEALTHY_ENTERPRISE_ROUTING',
+        systemStatus: 'OPERATIONAL',
       },
       exportedAt: new Date().toISOString(),
-      clientSecretVerified: true,
     };
 
     setLastResponse(exportResponse);
@@ -181,43 +167,41 @@ export const ApiHubInspector: React.FC<ApiHubInspectorProps> = ({
   };
 
   return (
-    <section className="py-6" id="sync-inspector">
+    <div className="space-y-6" id="sync-inspector">
       {/* Section Header */}
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
           <span className="text-xs font-semibold text-blue-400 uppercase tracking-wider">
             Integration Architecture
           </span>
-          <h2 className="text-2xl sm:text-3xl font-semibold text-white mt-1">
-            Real-Time Profile Synchronizer & API Console
+          <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white mt-1">
+            Profile Synchronization & API Console
           </h2>
-          <p className="text-slate-400 text-sm mt-1 max-w-2xl">
-            Live integration pipeline connecting external resume and CV data sources with this portfolio cache, backed by secure timing-safe authentication.
+          <p className="text-slate-400 text-xs sm:text-sm mt-1 max-w-2xl leading-relaxed">
+            Bi-directional data pipeline connecting external resume and CV data sources with this portfolio cache via timing-safe authenticated webhooks.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-slate-900 border border-slate-800 text-xs text-slate-300">
-          <div className="w-2 h-2 rounded-full bg-emerald-400"></div>
-          <span>REST API Routes: Operational</span>
+        <div className="flex items-center gap-2 px-2.5 py-1 rounded bg-slate-900 border border-slate-800 text-xs text-slate-300 self-start sm:self-end">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+          <span>REST API: Operational</span>
         </div>
       </div>
 
-      {/* Main Architecture Console */}
-      <div className="rounded-xl bg-slate-900 border border-slate-800 shadow-sm overflow-hidden">
-        {/* Console Navigation Tab Bar */}
-        <div className="flex flex-wrap items-center justify-between border-b border-slate-800 px-4 sm:px-6 py-3 bg-slate-950 gap-3">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-slate-300">
-              API Orchestration Console
-            </span>
-          </div>
+      {/* Main Console Box */}
+      <div className="rounded-xl bg-slate-900/90 border border-slate-800 shadow-sm overflow-hidden">
+        {/* Tab Bar */}
+        <div className="flex flex-wrap items-center justify-between border-b border-slate-800 px-4 sm:px-6 py-3 bg-slate-950/80 gap-3">
+          <span className="text-xs font-semibold text-slate-300">
+            API Console
+          </span>
 
-          <div className="flex items-center gap-1.5 p-1 rounded-md bg-slate-900 border border-slate-800">
+          <div className="flex items-center gap-1 p-0.5 rounded-md bg-slate-900 border border-slate-800 overflow-x-auto max-w-full">
             <button
               onClick={() => setActiveSubTab('ingestion')}
-              className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+              className={`px-2.5 py-1 text-xs font-medium rounded transition-colors whitespace-nowrap cursor-pointer ${
                 activeSubTab === 'ingestion'
-                  ? 'bg-blue-600 text-white shadow-sm'
+                  ? 'bg-blue-600 text-white font-semibold'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -225,9 +209,9 @@ export const ApiHubInspector: React.FC<ApiHubInspectorProps> = ({
             </button>
             <button
               onClick={() => setActiveSubTab('export')}
-              className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+              className={`px-2.5 py-1 text-xs font-medium rounded transition-colors whitespace-nowrap cursor-pointer ${
                 activeSubTab === 'export'
-                  ? 'bg-blue-600 text-white shadow-sm'
+                  ? 'bg-blue-600 text-white font-semibold'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -235,9 +219,9 @@ export const ApiHubInspector: React.FC<ApiHubInspectorProps> = ({
             </button>
             <button
               onClick={() => setActiveSubTab('schema')}
-              className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+              className={`px-2.5 py-1 text-xs font-medium rounded transition-colors whitespace-nowrap cursor-pointer ${
                 activeSubTab === 'schema'
-                  ? 'bg-blue-600 text-white shadow-sm'
+                  ? 'bg-blue-600 text-white font-semibold'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -245,9 +229,9 @@ export const ApiHubInspector: React.FC<ApiHubInspectorProps> = ({
             </button>
             <button
               onClick={() => setActiveSubTab('auth')}
-              className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+              className={`px-2.5 py-1 text-xs font-medium rounded transition-colors whitespace-nowrap cursor-pointer ${
                 activeSubTab === 'auth'
-                  ? 'bg-blue-600 text-white shadow-sm'
+                  ? 'bg-blue-600 text-white font-semibold'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -256,18 +240,18 @@ export const ApiHubInspector: React.FC<ApiHubInspectorProps> = ({
           </div>
         </div>
 
-        {/* Console Workspace Body */}
-        <div className="p-6 sm:p-8 grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Left Column: Configuration & Trigger */}
-          <div className="lg:col-span-6 flex flex-col space-y-5">
-            {/* API Key Input Section */}
-            <div className="p-4 rounded-lg bg-slate-950 border border-slate-800 space-y-2">
+        {/* Body */}
+        <div className="p-5 sm:p-7 grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Left Column: Form & Action */}
+          <div className="lg:col-span-6 flex flex-col space-y-4">
+            {/* Key Input */}
+            <div className="p-3.5 rounded-lg bg-slate-950/80 border border-slate-800/80 space-y-2">
               <div className="flex items-center justify-between text-xs">
-                <span className="text-slate-400 flex items-center gap-1.5">
+                <span className="text-slate-400 flex items-center gap-1.5 font-medium">
                   <Key size={13} className="text-blue-400" />
-                  Authorization Bearer / API Token:
+                  <span>Bearer Token / API Key:</span>
                 </span>
-                <span className="text-xs text-emerald-400 font-medium">Timing-Safe Guard Active</span>
+                <span className="text-[11px] text-emerald-400 font-medium">Timing-Safe Active</span>
               </div>
               <div className="flex items-center gap-2">
                 <input
@@ -275,52 +259,51 @@ export const ApiHubInspector: React.FC<ApiHubInspectorProps> = ({
                   value={apiKeyInput}
                   onChange={(e) => setApiKeyInput(e.target.value)}
                   placeholder="Enter API Secret Key"
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-800 rounded-md text-xs text-blue-300 focus:outline-none focus:border-blue-500"
+                  className="w-full px-2.5 py-1.5 bg-slate-900 border border-slate-800 rounded text-xs text-blue-300 font-mono focus:outline-none focus:border-blue-500"
                 />
                 <button
                   onClick={() => setApiKeyInput('mp_sec_live_9f83a2e1d74b6c80')}
-                  className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs rounded-md border border-slate-700 transition-colors whitespace-nowrap"
-                  title="Reset to default key"
+                  className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-750 text-slate-300 hover:text-white text-xs rounded border border-slate-700 transition-colors whitespace-nowrap cursor-pointer"
                 >
-                  Reset Key
+                  Reset
                 </button>
               </div>
             </div>
 
             {activeSubTab === 'ingestion' && (
-              <div className="space-y-4">
-                <div className="p-4 rounded-lg bg-slate-950 border border-slate-800">
-                  <div className="text-xs font-semibold text-blue-400 flex items-center gap-2">
-                    <Sparkles size={14} />
-                    <span>Real-Time CV Ingestion Simulator</span>
+              <div className="space-y-3.5">
+                <div className="p-3.5 rounded-lg bg-slate-950/80 border border-slate-800/80">
+                  <div className="text-xs font-semibold text-white flex items-center gap-1.5">
+                    <Sparkles size={13} className="text-blue-400" />
+                    <span>Real-Time Ingestion Trigger</span>
                   </div>
-                  <p className="text-slate-400 text-xs mt-1.5 leading-relaxed">
-                    When candidate information is updated in Emeron, it dispatches an authenticated JSON webhook to this portfolio's <code className="text-slate-200">/api/sync-cv</code> endpoint.
+                  <p className="text-slate-400 text-xs mt-1 leading-relaxed">
+                    Emeron updates candidate data and dispatches an authenticated JSON payload to <code className="text-slate-200">/api/sync-cv</code>.
                   </p>
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-2.5">
                   <div>
                     <label className="text-xs font-medium text-slate-300 block mb-1">
-                      Professional Headline Field:
+                      Professional Headline:
                     </label>
                     <input
                       type="text"
                       value={customHeadline}
                       onChange={(e) => setCustomHeadline(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-md text-xs text-white focus:outline-none focus:border-blue-500"
+                      className="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs text-white focus:outline-none focus:border-blue-500"
                     />
                   </div>
 
                   <div>
                     <label className="text-xs font-medium text-slate-300 block mb-1">
-                      Lead Position Role Title:
+                      Current Position Title:
                     </label>
                     <input
                       type="text"
                       value={customRoleTitle}
                       onChange={(e) => setCustomRoleTitle(e.target.value)}
-                      className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-md text-xs text-white focus:outline-none focus:border-blue-500"
+                      className="w-full px-2.5 py-1.5 bg-slate-950 border border-slate-800 rounded text-xs text-white focus:outline-none focus:border-blue-500"
                     />
                   </div>
                 </div>
@@ -328,164 +311,137 @@ export const ApiHubInspector: React.FC<ApiHubInspectorProps> = ({
                 <button
                   onClick={handleSimulateEmeronSync}
                   disabled={isExecuting}
-                  className="w-full py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs rounded-lg transition-colors flex items-center justify-center gap-2 shadow-sm"
+                  className="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white font-medium text-xs rounded transition-colors flex items-center justify-center gap-1.5 shadow-sm cursor-pointer disabled:opacity-50"
                 >
-                  <Play size={14} className={isExecuting ? 'animate-spin' : ''} />
-                  <span>{isExecuting ? 'Executing Ingestion Pipeline...' : 'Dispatch Live Ingestion Webhook'}</span>
+                  <Play size={13} className={isExecuting ? 'animate-spin' : ''} />
+                  <span>{isExecuting ? 'Executing...' : 'Dispatch Live Ingestion'}</span>
                 </button>
               </div>
             )}
 
             {activeSubTab === 'export' && (
-              <div className="space-y-4">
-                <div className="p-4 rounded-lg bg-slate-950 border border-slate-800">
-                  <div className="text-xs font-semibold text-blue-400 flex items-center gap-2">
-                    <BarChart3 size={14} />
-                    <span>Project Engagement & Metrics Export Handler</span>
+              <div className="space-y-3.5">
+                <div className="p-3.5 rounded-lg bg-slate-950/80 border border-slate-800/80">
+                  <div className="text-xs font-semibold text-white flex items-center gap-1.5">
+                    <BarChart3 size={13} className="text-blue-400" />
+                    <span>Telemetry Export Pipeline</span>
                   </div>
-                  <p className="text-slate-400 text-xs mt-1.5 leading-relaxed">
-                    External dashboards query <code className="text-slate-200">GET /api/telemetry</code> to fetch visitor interactions, live showcase views, and recruiter engagement telemetry.
+                  <p className="text-slate-400 text-xs mt-1 leading-relaxed">
+                    External platforms query <code className="text-slate-200">GET /api/telemetry</code> to fetch views and interaction telemetry.
                   </p>
                 </div>
 
-                <div className="p-4 rounded-lg bg-slate-950 border border-slate-800 space-y-2 text-xs">
+                <div className="p-3.5 rounded-lg bg-slate-950/80 border border-slate-800/80 space-y-1.5 text-xs">
                   <div className="flex justify-between text-slate-400">
-                    <span>Target Route:</span>
-                    <span className="text-blue-400 font-medium">GET /api/telemetry</span>
-                  </div>
-                  <div className="flex justify-between text-slate-400">
-                    <span>Cache Control:</span>
-                    <span className="text-slate-300">s-maxage=60, stale-while-revalidate</span>
+                    <span>Endpoint:</span>
+                    <span className="text-blue-400 font-mono">GET /api/telemetry</span>
                   </div>
                   <div className="flex justify-between text-slate-400">
                     <span>Total Tracked Views:</span>
-                    <span className="text-emerald-400 font-semibold">{telemetryStats.totalViews}</span>
+                    <span className="text-white font-semibold">{telemetryStats.totalViews}</span>
                   </div>
                 </div>
 
                 <button
                   onClick={handleSimulateTelemetryExport}
                   disabled={isExecuting}
-                  className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-medium text-xs rounded-lg border border-slate-700 transition-colors flex items-center justify-center gap-2"
+                  className="w-full py-2 bg-slate-800 hover:bg-slate-750 text-white font-medium text-xs rounded border border-slate-700 transition-colors flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
                 >
-                  <Play size={14} className={isExecuting ? 'animate-spin' : ''} />
-                  <span>{isExecuting ? 'Fetching Telemetry...' : 'Fetch Live Telemetry Export'}</span>
+                  <Play size={13} className={isExecuting ? 'animate-spin' : ''} />
+                  <span>{isExecuting ? 'Fetching...' : 'Query Live Telemetry'}</span>
                 </button>
               </div>
             )}
 
             {activeSubTab === 'schema' && (
-              <div className="space-y-3">
+              <div className="space-y-2.5">
                 <p className="text-xs text-slate-400 leading-relaxed">
-                  PostgreSQL schema structured with Drizzle ORM, managing <code className="text-slate-200">cv_data_cache</code>, <code className="text-slate-200">project_telemetry</code>, <code className="text-slate-200">contact_submissions</code>, and <code className="text-slate-200">sync_logs</code>.
+                  PostgreSQL schema structured with Drizzle ORM:
                 </p>
-                <div className="p-3.5 rounded-lg bg-slate-950 border border-slate-800 font-mono text-xs text-slate-300 space-y-1.5 max-h-56 overflow-y-auto">
-                  <div className="text-blue-400 font-semibold">// Drizzle Table: cv_data_cache</div>
-                  <div>id: uuid().defaultRandom().primaryKey()</div>
+                <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 font-mono text-xs text-slate-300 space-y-1 max-h-56 overflow-y-auto">
+                  <div className="text-blue-400 font-semibold">// Table: cv_data_cache</div>
+                  <div>id: uuid().primaryKey()</div>
                   <div>version: varchar().notNull()</div>
                   <div>experiences: jsonb().notNull()</div>
                   <div>skills: jsonb().notNull()</div>
-                  <div>isActive: boolean().default(true)</div>
                   <div>updatedAt: timestamp().defaultNow()</div>
                 </div>
               </div>
             )}
 
             {activeSubTab === 'auth' && (
-              <div className="space-y-3">
-                <div className="p-4 rounded-lg bg-slate-950 border border-slate-800">
-                  <div className="text-xs font-semibold text-emerald-400 flex items-center gap-2">
-                    <Lock size={14} />
+              <div className="space-y-2.5">
+                <div className="p-3.5 rounded-lg bg-slate-950 border border-slate-800">
+                  <div className="text-xs font-semibold text-emerald-400 flex items-center gap-1.5">
+                    <Lock size={13} />
                     <span>Timing-Safe Authentication Guard</span>
                   </div>
-                  <p className="text-slate-400 text-xs mt-1.5 leading-relaxed">
-                    Uses <code className="text-slate-200 font-mono">crypto.timingSafeEqual</code> to prevent side-channel timing attacks across all bi-directional sync operations between Emeron and this portfolio.
+                  <p className="text-slate-400 text-xs mt-1 leading-relaxed">
+                    Uses <code className="text-slate-200 font-mono">crypto.timingSafeEqual</code> to defend against side-channel timing attacks.
                   </p>
-                </div>
-
-                <div className="p-3.5 rounded-lg bg-slate-950 border border-slate-800 font-mono text-xs text-slate-300 space-y-1">
-                  <div className="text-emerald-400 font-semibold">// Security Implementation</div>
-                  <div>const match = timingSafeEqual(expectedBuf, providedBuf);</div>
-                  <div>{"if (!match) return new Response(..., { status: 403 });"}</div>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Right Column: Live Terminal Output & Response Inspector */}
-          <div className="lg:col-span-6 flex flex-col space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2 text-xs text-slate-400">
-                <Terminal size={14} className="text-blue-400" />
-                <span>Response Stream & Payloads</span>
-              </div>
+          {/* Right Column: Terminal Output */}
+          <div className="lg:col-span-6 flex flex-col space-y-3.5">
+            <div className="flex items-center justify-between text-xs text-slate-400">
+              <span className="flex items-center gap-1.5">
+                <Terminal size={13} className="text-blue-400" />
+                <span>Response Stream</span>
+              </span>
 
               {lastResponse && (
                 <button
                   onClick={() => handleCopy(JSON.stringify(lastResponse, null, 2), 'response')}
-                  className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors"
+                  className="text-xs text-blue-400 hover:text-blue-300 flex items-center gap-1 transition-colors cursor-pointer"
                 >
-                  <Copy size={12} />
-                  <span>{copiedText === 'response' ? 'Copied JSON' : 'Copy Response'}</span>
+                  <Copy size={11} />
+                  <span>{copiedText === 'response' ? 'Copied' : 'Copy JSON'}</span>
                 </button>
               )}
             </div>
 
-            {/* Terminal Body */}
-            <div className="flex-1 min-h-[280px] p-4 rounded-lg bg-slate-950 border border-slate-800 font-mono text-xs overflow-auto relative">
+            <div className="flex-1 min-h-[220px] max-h-[320px] p-3.5 rounded-lg bg-slate-950 border border-slate-800 font-mono text-xs overflow-auto">
               {lastResponse ? (
                 <pre className="text-slate-300 whitespace-pre-wrap leading-relaxed text-xs">
                   {JSON.stringify(lastResponse, null, 2)}
                 </pre>
               ) : (
-                <div className="h-full flex flex-col items-center justify-center text-slate-600 space-y-2 py-8">
-                  <Terminal size={24} className="text-slate-700" />
+                <div className="h-full flex flex-col items-center justify-center text-slate-600 space-y-1.5 py-6">
+                  <Terminal size={20} className="text-slate-700" />
                   <p className="text-xs text-slate-500 font-sans text-center">
-                    Awaiting endpoint trigger...
-                    <br />
-                    Click "Dispatch Live Ingestion Webhook" to execute.
+                    Awaiting endpoint execution...
                   </p>
                 </div>
               )}
             </div>
 
-            {/* Recent Bi-Directional Sync Logs */}
+            {/* Audit Log */}
             <div>
-              <div className="text-xs uppercase tracking-wider text-slate-400 font-semibold mb-2 flex items-center justify-between">
-                <span>Recent Sync Audit Log:</span>
-                <span className="text-xs text-slate-400 normal-case">{syncLogs.length} events recorded</span>
+              <div className="text-[11px] uppercase tracking-wider text-slate-400 font-semibold mb-1.5 flex items-center justify-between">
+                <span>Recent Sync Events</span>
+                <span className="text-slate-500 normal-case">{syncLogs.length} events</span>
               </div>
-              <div className="space-y-1.5 max-h-36 overflow-y-auto">
-                {syncLogs.slice(0, 4).map((log) => (
+              <div className="space-y-1 max-h-32 overflow-y-auto">
+                {syncLogs.slice(0, 3).map((log) => (
                   <div
                     key={log.id}
-                    className="p-2.5 rounded-md bg-slate-950 border border-slate-800 flex items-center justify-between text-xs"
+                    className="p-2 rounded bg-slate-950/80 border border-slate-800/80 flex items-center justify-between text-xs"
                   >
                     <div className="flex items-center gap-2">
-                      <span
-                        className={`px-2 py-0.5 rounded text-xs font-semibold ${
-                          log.direction === 'INGEST'
-                            ? 'bg-blue-950 text-blue-300 border border-blue-800'
-                            : 'bg-slate-800 text-slate-300 border border-slate-700'
-                        }`}
-                      >
+                      <span className="text-[10px] font-semibold text-slate-300">
                         {log.direction}
                       </span>
-                      <span className="text-slate-300 font-mono">{log.endpoint}</span>
+                      <span className="text-slate-400 font-mono text-[11px] truncate max-w-[140px] sm:max-w-none">
+                        {log.endpoint}
+                      </span>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`text-xs font-medium ${
-                          log.status === 'SUCCESS' ? 'text-emerald-400' : 'text-rose-400'
-                        }`}
-                      >
-                        {log.status}
-                      </span>
-                      <span className="text-slate-400 text-xs">
-                        {new Date(log.syncedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    </div>
+                    <span className="text-[11px] font-medium text-emerald-400">
+                      {log.status}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -493,6 +449,6 @@ export const ApiHubInspector: React.FC<ApiHubInspectorProps> = ({
           </div>
         </div>
       </div>
-    </section>
+    </div>
   );
 };
