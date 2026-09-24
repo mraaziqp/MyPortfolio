@@ -12,13 +12,11 @@ export const Footer: React.FC<FooterProps> = ({ onOpenSyncInspector }) => {
         {/* Left: Professional Pursuits */}
         <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 text-xs text-slate-400">
           <span className="text-slate-300 font-medium">Interests & Pursuits:</span>
-          <span>Game Development (Unity/C#)</span>
+          <span>Interactive Tech & VR Simulation (Unity/C#)</span>
           <span className="text-slate-600">•</span>
-          <span>Artisanal Coffee</span>
+          <span>Hardware & Electronics Restoration</span>
           <span className="text-slate-600">•</span>
-          <span>Chocolate Making</span>
-          <span className="text-slate-600">•</span>
-          <span>Electronics & Hardware Repair</span>
+          <span>Precision Coffee Extraction & Artisanal Confectionery</span>
         </div>
 
         {/* Right: Social & Navigation */}
@@ -41,7 +39,7 @@ export const Footer: React.FC<FooterProps> = ({ onOpenSyncInspector }) => {
           </a>
 
           <a
-            href="https://github.com/mohammedparker"
+            href="https://github.com/mraaziqp"
             target="_blank"
             rel="noopener noreferrer"
             className="hover:text-white transition-colors"

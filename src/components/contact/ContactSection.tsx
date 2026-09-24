@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Mail, MapPin, Send, CheckCircle2, Building2, Github, Linkedin } from 'lucide-react';
+import { Mail, MapPin, Phone, Download, Send, CheckCircle2, Building2, Github, Linkedin } from 'lucide-react';
 import { ContactSubmissionPayload } from '../../types';
 import { recordContactSubmission } from '../../lib/store';
 
@@ -90,7 +90,7 @@ export const ContactSection: React.FC = () => {
                 </div>
                 <div>
                   <div className="text-[11px] text-slate-500 font-medium">Location</div>
-                  <div className="text-slate-200 text-xs font-medium">Cape Town, South Africa (GMT+2)</div>
+                  <div className="text-slate-200 text-xs font-medium">Cape Town, South Africa 7500</div>
                 </div>
               </div>
 
@@ -101,10 +101,25 @@ export const ContactSection: React.FC = () => {
                 <div>
                   <div className="text-[11px] text-slate-500 font-medium">Direct Email</div>
                   <a
-                    href="mailto:mohammed.parker.dev@gmail.com"
+                    href="mailto:mraaziqp@gmail.com"
                     className="text-blue-400 text-xs hover:underline font-medium"
                   >
-                    mohammed.parker.dev@gmail.com
+                    mraaziqp@gmail.com
+                  </a>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3 text-slate-300">
+                <div className="p-2 rounded-md bg-slate-800 text-slate-400 border border-slate-700 shrink-0">
+                  <Phone size={15} />
+                </div>
+                <div>
+                  <div className="text-[11px] text-slate-500 font-medium">Phone / WhatsApp</div>
+                  <a
+                    href="tel:+27837864913"
+                    className="text-slate-200 text-xs hover:underline font-medium"
+                  >
+                    +27 83 786 4913
                   </a>
                 </div>
               </div>
@@ -120,26 +135,37 @@ export const ContactSection: React.FC = () => {
               </div>
             </div>
 
-            {/* Profile Links */}
-            <div className="pt-3 border-t border-slate-800 flex items-center gap-2.5">
+            {/* Profile Links & CV Download */}
+            <div className="pt-3 border-t border-slate-800 space-y-2">
               <a
-                href="https://github.com/mohammedparker"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 py-1.5 px-3 rounded bg-slate-800 hover:bg-slate-750 border border-slate-700 text-xs font-medium text-slate-200 flex items-center justify-center gap-1.5 transition-colors"
+                href="/Mohammed_Parker_CV.pdf"
+                download="Mohammed_Parker_CV.pdf"
+                className="w-full py-2 px-3 rounded bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/40 text-xs font-semibold text-blue-300 flex items-center justify-center gap-2 transition-colors"
               >
-                <Github size={13} className="text-slate-400" />
-                <span>GitHub</span>
+                <Download size={14} className="text-blue-400" />
+                <span>Download Verified CV (PDF)</span>
               </a>
-              <a
-                href="https://linkedin.com/in/mohammedparker"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 py-1.5 px-3 rounded bg-slate-800 hover:bg-slate-750 border border-slate-700 text-xs font-medium text-slate-200 flex items-center justify-center gap-1.5 transition-colors"
-              >
-                <Linkedin size={13} className="text-blue-400" />
-                <span>LinkedIn</span>
-              </a>
+
+              <div className="flex items-center gap-2.5">
+                <a
+                  href="https://github.com/mraaziqp"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 py-1.5 px-3 rounded bg-slate-800 hover:bg-slate-750 border border-slate-700 text-xs font-medium text-slate-200 flex items-center justify-center gap-1.5 transition-colors"
+                >
+                  <Github size={13} className="text-slate-400" />
+                  <span>GitHub</span>
+                </a>
+                <a
+                  href="https://linkedin.com/in/mohammedparker"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex-1 py-1.5 px-3 rounded bg-slate-800 hover:bg-slate-750 border border-slate-700 text-xs font-medium text-slate-200 flex items-center justify-center gap-1.5 transition-colors"
+                >
+                  <Linkedin size={13} className="text-blue-400" />
+                  <span>LinkedIn</span>
+                </a>
+              </div>
             </div>
           </div>
         </div>

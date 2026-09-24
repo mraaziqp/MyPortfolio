@@ -1,7 +1,7 @@
 import { CvSyncPayload, ProjectTelemetry, SyncLog, ContactSubmissionPayload } from '../types';
 import { INITIAL_CV_DATA, SHOWCASE_PROJECTS } from '../data/initialData';
 
-const CV_CACHE_STORAGE_KEY = 'mp_portfolio_cv_cache_v2';
+const CV_CACHE_STORAGE_KEY = 'mp_portfolio_cv_cache_v3';
 const TELEMETRY_STORAGE_KEY = 'mp_portfolio_telemetry_v2';
 const SYNC_LOGS_STORAGE_KEY = 'mp_portfolio_sync_logs_v2';
 const CONTACTS_STORAGE_KEY = 'mp_portfolio_contacts_v2';

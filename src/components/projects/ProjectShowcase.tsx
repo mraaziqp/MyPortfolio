@@ -20,7 +20,7 @@ export const ProjectShowcase: React.FC<ProjectShowcaseProps> = ({
   const [selectedFilter, setSelectedFilter] = useState<string>('ALL');
   const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
 
-  const categories = ['ALL', 'Enterprise Intelligence', 'Productivity Systems', 'Enterprise SaaS'];
+  const categories = ['ALL', ...Array.from(new Set(projects.map((p) => p.category)))];
 
   const filteredProjects = selectedFilter === 'ALL'
     ? projects

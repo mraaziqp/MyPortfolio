@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, Server, ShieldCheck, Code2, ArrowUpRight, CheckCircle2, Globe2 } from 'lucide-react';
+import { ArrowRight, Server, ShieldCheck, Code2, ArrowUpRight, CheckCircle2, Globe2, Download } from 'lucide-react';
 import { CvSyncPayload } from '../../types';
 
 interface HeroSectionProps {
@@ -94,6 +94,15 @@ export const HeroSection: React.FC<HeroSectionProps> = ({
             >
               <span>View Track Record</span>
             </button>
+
+            <a
+              href="/Mohammed_Parker_CV.pdf"
+              download="Mohammed_Parker_CV.pdf"
+              className="px-3.5 sm:px-4 py-2.5 bg-slate-900 hover:bg-slate-850 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white text-xs sm:text-sm font-medium rounded-md transition-colors flex items-center gap-1.5 cursor-pointer"
+            >
+              <Download size={13} className="text-blue-400" />
+              <span>Download CV</span>
+            </a>
 
             <button
               onClick={onOpenSyncInspector}

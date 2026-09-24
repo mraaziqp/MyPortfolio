@@ -53,7 +53,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               </span>
             </div>
             <p className="text-[11px] text-slate-400 font-normal truncate hidden sm:block">
-              Full-Stack Developer & Enterprise IT Specialist
+              Software Engineer & Systems Administrator
             </p>
           </div>
         </div>

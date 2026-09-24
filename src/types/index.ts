@@ -16,6 +16,7 @@ export interface SkillCategoryMap {
   languages: string[];
   frameworks: string[];
   cloudAndDevOps: string[];
+  aiAndArchitecture?: string[];
   enterpriseAndIT: string[];
   hardwareAndCreative: string[];
 }
@@ -68,7 +69,7 @@ export interface ProjectShowcaseItem {
   tagline: string;
   description: string;
   role: string;
-  category: 'Enterprise Intelligence' | 'Productivity Systems' | 'Enterprise SaaS' | 'AI Platform' | 'Enterprise Cloud' | 'Workflow Suite' | 'Systems & Games';
+  category: string;
   featured: boolean;
   technologies: string[];
   metrics: {

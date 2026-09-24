@@ -67,109 +67,151 @@ function validateApiKey(requestHeaders, searchParams) {
 
 // src/data/initialData.ts
 var INITIAL_CV_DATA = {
-  version: "v2.4.1",
+  version: "v3.0.0",
   fullName: "Mohammed Parker",
-  headline: "Senior Full-Stack Developer & Enterprise IT Systems Specialist",
-  summary: "Solutions engineer and infrastructure specialist bridging mission-critical enterprise IT operations (BCX, VMware, Active Directory) with resilient full-stack web applications. Track record of maintaining 99.98% virtualization uptime, leading cloud migrations, and architecting automated, real-time data synchronization systems.",
-  location: "Cape Town, South Africa",
-  email: "mohammed.parker.dev@gmail.com",
-  phone: "+27 (0) 21 000 0000",
-  githubUrl: "https://github.com/mohammedparker",
+  headline: "Software Engineer & Systems Administrator",
+  summary: "Software Engineer and Systems Administrator with strong expertise in full-stack application development, cloud computing (AWS Certified), and enterprise infrastructure management. Proven track record of architecting scalable multi-tenant SaaS platforms, interactive VR applications, and AI-orchestrated tools. Combines hands-on systems reliability, VMware virtualization, and Azure/Active Directory administration with modern web development methodologies to deliver secure, high-availability software solutions.",
+  location: "Cape Town, South Africa 7500",
+  email: "mraaziqp@gmail.com",
+  phone: "+27 83 786 4913",
+  githubUrl: "https://github.com/mraaziqp",
   linkedinUrl: "https://linkedin.com/in/mohammedparker",
-  websiteUrl: "https://mohammedparker.dev",
+  websiteUrl: "https://mraaziqp.vercel.app",
   experiences: [
     {
-      id: "exp-1",
-      role: "IT Operations Administrator & Infrastructure Engineer",
-      company: "BCX (Business Connexion)",
+      id: "exp-bcx",
+      role: "IT Admin",
+      company: "BCX",
       location: "Cape Town, South Africa",
-      startDate: "2022",
+      startDate: "10/2024",
       endDate: null,
       isCurrent: true,
-      summary: "Overseeing mission-critical enterprise server virtualization, domain security, and high-availability systems across hybrid corporate environments.",
+      summary: "Managing and coordinating server, virtual machine (VMware/Hyper-V), and Active Directory engineering workflows, consistently meeting strict enterprise Service Level Agreements (SLAs).",
       keyAchievements: [
-        "Maintained 99.98% infrastructure availability across 150+ enterprise virtual machines (VMware ESXi & Microsoft Hyper-V).",
-        "Implemented enterprise-wide Active Directory security policies, automated provisioning workflows, and RBAC governance.",
-        "Established proactive disaster recovery and automated failover pipelines minimizing business disruption.",
-        "Delivered continuous system health observability with enterprise incident escalation protocols."
+        "Manage and coordinate server, virtual machine (VMware/Hyper-V), and Active Directory engineering workflows, consistently meeting strict enterprise Service Level Agreements (SLAs).",
+        "Direct the Microsoft team\u2019s request and incident queues; triage complex technical escalations, prioritize workload distribution, and exercise autonomous decision-making for task resolution.",
+        "Provision, configure, and maintain physical and virtual enterprise server infrastructure, establishing remote diagnostics and system observability.",
+        "Oversee end-to-end server lifecycle management, including decommissioning protocols, compliance documentation, and audit readiness.",
+        "Serve as the final technical gatekeeper and QA sign-off authority prior to deploying infrastructure changes and client-facing solutions."
       ],
-      technologies: ["Active Directory", "VMware ESXi", "Hyper-V", "Windows Server Enterprise", "Ubuntu Server", "PowerShell Automation", "Enterprise Networking"],
-      enterpriseDomain: "Enterprise Infrastructure, Virtualization & Directory Services"
+      technologies: ["VMware ESXi", "Microsoft Hyper-V", "Active Directory", "Windows Server", "System Observability", "SLA Management", "Microsoft Infrastructure"],
+      enterpriseDomain: "Enterprise Virtualization & Directory Services"
     },
     {
-      id: "exp-2",
-      role: "Full-Stack Software Engineer & Solutions Architect",
-      company: "Independent / Product Engineering",
+      id: "exp-reddington",
+      role: "IT Technician",
+      company: "Reddington \u2013 Ensure IT Services",
       location: "Cape Town, South Africa",
-      startDate: "2021",
-      endDate: null,
-      isCurrent: true,
-      summary: "Designing and deploying robust, business-critical web platforms, secure API integrations, and automated data pipelines using Next.js, TypeScript, and modern database architectures.",
-      keyAchievements: [
-        "Architected Emeron: enterprise CV data extraction platform featuring secure real-time webhook synchronization and schema validation.",
-        "Engineered LifeStack: executive workflow assistant optimizing task scheduling through intelligent contextual analysis.",
-        "Developed Hustle Studio: end-to-end operational platform centralizing billing, contract lifecycle, and resource utilization."
-      ],
-      technologies: ["Next.js (App Router)", "TypeScript", "React", "PostgreSQL", "Drizzle ORM", "Tailwind CSS", "API Integration", "Cloud Architecture"],
-      enterpriseDomain: "Full-Stack Enterprise Applications & Automated Pipelines"
-    },
-    {
-      id: "exp-3",
-      role: "Systems Administrator & Cloud Solutions Specialist",
-      company: "Technology Infrastructure Solutions",
-      location: "Western Cape, South Africa",
-      startDate: "2019",
-      endDate: "2022",
+      startDate: "07/2023",
+      endDate: "10/2024",
       isCurrent: false,
-      summary: "Managed cloud migrations, multi-tier network security, automated backup operations, and precision hardware diagnostics for enterprise clients.",
+      summary: "Performed root-cause analysis, hardware diagnostics, and component-level repairs for enterprise laptops, workstations, and printers across enterprise client fleets.",
       keyAchievements: [
-        "Earned AWS Certified Cloud Practitioner credential and successfully migrated on-premises infrastructure to AWS VPC and EC2 environments.",
-        "Enforced least-privilege IAM security frameworks and automated snapshot schedules for data protection compliance.",
-        "Conducted component-level hardware diagnostics and board-level repairs on critical server appliances."
+        "Performed root-cause analysis, hardware diagnostics, and component-level repairs for enterprise laptops, workstations, and printers.",
+        "Managed parts procurement, warranty tracking, and inventory logistics through Microsoft Dynamics.",
+        "Resolved complex networking, operating system, and hardware configuration escalations."
       ],
-      technologies: ["AWS (EC2, S3, IAM, VPC, Route53)", "Docker", "Bash Automation", "Hardware Diagnostics", "Electronics & Diagnostics"],
-      enterpriseDomain: "Cloud Migration & Infrastructure Reliability"
+      technologies: ["Hardware Diagnostics", "Component-Level Repair", "Microsoft Dynamics", "Enterprise Networking", "OS Troubleshooting", "Logistics Management"],
+      enterpriseDomain: "Hardware Diagnostics & Systems Reliability"
+    },
+    {
+      id: "exp-fpg",
+      role: "IT Technical Support Intern",
+      company: "FPG Group",
+      location: "Plattekloof, South Africa",
+      startDate: "05/2023",
+      endDate: "09/2023",
+      isCurrent: false,
+      summary: "Administered user identities, access control (RBAC), and security policies in Azure Active Directory (Entra ID) with centralized endpoint deployment.",
+      keyAchievements: [
+        "Administered user identities, access control (RBAC), and security policies in Azure Active Directory (Entra ID).",
+        "Deployed operating system images and configured enterprise software across distributed company workstations using Microsoft Endpoint.",
+        "Participated in cross-functional technical meetings to troubleshoot systemic errors and support IT modernization initiatives."
+      ],
+      technologies: ["Azure Active Directory / Entra ID", "RBAC Policies", "Microsoft Endpoint", "OS Imaging", "Security Policies", "IT Modernization"],
+      enterpriseDomain: "Azure Identity & Endpoint Management"
+    },
+    {
+      id: "exp-construct",
+      role: "L1 Technical Support Engineer",
+      company: "Construct Education",
+      location: "Cape Town, South Africa",
+      startDate: "05/2023",
+      endDate: "08/2023",
+      isCurrent: false,
+      summary: "Delivered remote technical support across 54 KFC branch locations and educational portals, troubleshooting Canvas LMS and mobile app issues.",
+      keyAchievements: [
+        "Delivered remote technical support across 54 KFC branch locations and educational portals, troubleshooting Canvas LMS and mobile app issues.",
+        "Authored accessible technical guides and standard operating procedures (SOPs) to streamline troubleshooting for non-technical users."
+      ],
+      technologies: ["Remote Support", "Canvas LMS", "Mobile Applications", "Technical Writing", "SOP Authoring", "Distributed Branch Support"],
+      enterpriseDomain: "Distributed Branch Support & Educational Platforms"
     }
   ],
   skills: {
-    languages: ["TypeScript", "JavaScript (ESNext)", "Python", "C# (Unity)", "SQL", "Bash / Shell", "PowerShell"],
-    frameworks: ["Next.js (App Router)", "React", "Node.js", "Express", "Tailwind CSS", "Drizzle ORM", "Prisma"],
-    cloudAndDevOps: ["AWS Certified Cloud Practitioner", "Docker", "Serverless PostgreSQL", "CI/CD Pipelines", "Linux (Ubuntu/Debian)", "Cloud Architecture"],
-    enterpriseAndIT: ["BCX Enterprise Infrastructure", "Active Directory & GPOs", "VMware ESXi", "Microsoft Hyper-V", "Windows Server Enterprise", "DNS / DHCP / VLANs", "Disaster Recovery & Redundancy"],
-    hardwareAndCreative: ["Unity Engine & C# Systems", "Artisanal Coffee Extraction & Profiling", "Artisan Chocolate Confectionery", "SMD Electronics & Hardware Diagnostics"]
+    languages: ["TypeScript", "Python", "C#", "SQL", "Bash / Shell", "PowerShell"],
+    frameworks: ["Next.js", "React", "Node.js", "Tailwind CSS", "Unity (XR)", "Express"],
+    cloudAndDevOps: ["AWS (EC2, S3)", "PostgreSQL", "Firebase", "Supabase", "Docker", "REST APIs"],
+    aiAndArchitecture: ["AI Orchestration", "LLMs (Gemini, Ollama)", "CI/CD", "Microservices", "System Observability"],
+    enterpriseAndIT: ["VMware", "Hyper-V", "Linux", "Windows Server", "Azure AD / Entra ID", "Microsoft Intune"],
+    hardwareAndCreative: ["Unity & C# XR Simulation", "Hardware & Electronics Restoration", "Precision Coffee Extraction", "Artisanal Confectionery"]
   },
   certifications: [
     {
-      id: "cert-1",
+      id: "cert-aws",
       name: "AWS Certified Cloud Practitioner",
       issuer: "Amazon Web Services (AWS)",
-      issueDate: "2023",
-      expiryDate: "2026",
-      credentialId: "AWS-CCP-984210",
+      issueDate: "Valid Thru 2026",
       badgeUrl: "https://aws.amazon.com/certification/certified-cloud-practitioner/"
     },
     {
-      id: "cert-2",
-      name: "Enterprise Active Directory & Server Administration",
-      issuer: "Microsoft Certified Professional Standards",
-      issueDate: "2022",
-      credentialId: "MS-AD-ADMIN-772"
+      id: "cert-lenovo",
+      name: "Lenovo Certified Technician",
+      issuer: "Lenovo",
+      issueDate: "2023 \u2013 2031"
+    },
+    {
+      id: "cert-dell",
+      name: "DELL Certified Technician",
+      issuer: "DELL Technologies",
+      issueDate: "2023 \u2013 2031"
     }
   ],
   education: [
     {
-      id: "edu-1",
-      degree: "Information Technology & Systems Engineering",
-      institution: "Cape Town Institute of Technology",
-      year: "2019 - 2021",
-      details: "Comprehensive focus on Enterprise Infrastructure, Cloud Architectures, Distributed Systems, and Modern Software Engineering."
+      id: "edu-adv-dip",
+      degree: "Advanced Diploma in ICT: Applications Development",
+      institution: "Cape Peninsula University of Technology (CPUT) \u2014 Cape Town",
+      year: "Graduated 04/2025",
+      details: "Focus: Full-stack application development, software design patterns, advanced SQL, systems analysis, and Agile methodologies."
+    },
+    {
+      id: "edu-nat-dip",
+      degree: "National Diploma in ICT: Applications Development",
+      institution: "Cape Peninsula University of Technology (CPUT) \u2014 Cape Town",
+      year: "01/2023",
+      details: "Comprehensive software engineering, database design, algorithms, and distributed computing."
+    },
+    {
+      id: "edu-higher-cert",
+      degree: "Higher Certificate in ICT",
+      institution: "Cape Peninsula University of Technology (CPUT) \u2014 Cape Town",
+      year: "01/2020",
+      details: "Information and Communication Technology foundational principles, programming fundamentals, and computer hardware."
+    },
+    {
+      id: "edu-matric",
+      degree: "National Senior Certificate / High School Diploma",
+      institution: "Fairbairn College \u2014 Cape Town",
+      year: "01/2019",
+      details: "National Senior Certificate matriculation."
     }
   ],
   rawCvMetadata: {
-    parserSource: "Emeron CV Intelligence Engine v2.4",
-    confidenceScore: 0.985,
+    parserSource: "Official Mohammed Parker Verified Resume",
+    confidenceScore: 1,
     parsedAt: (/* @__PURE__ */ new Date()).toISOString(),
-    checksum: "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    checksum: "sha256:mohammed_parker_cv_verified_2026"
   }
 };
 
