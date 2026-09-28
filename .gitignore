@@ -8,3 +8,6 @@ coverage/
 !.env.example
 dist
 .vercel
+
+.vercel
+.env*.local

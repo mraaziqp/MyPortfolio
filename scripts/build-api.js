@@ -6,8 +6,11 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(__dirname, '..');
 
+// Each entry becomes one Vercel Function (Hobby allows 12).
 const endpoints = [
   { in: 'api_src/contact.ts', out: 'api/contact.js' },
+  { in: 'api_src/profile.ts', out: 'api/profile.js' },
+  { in: 'api_src/health.ts', out: 'api/health.js' },
   { in: 'api_src/sync-cv.ts', out: 'api/sync-cv.js' },
   { in: 'api_src/telemetry.ts', out: 'api/telemetry.js' },
   { in: 'api_src/agent-builder/bridge.ts', out: 'api/agent-builder/bridge.js' },
@@ -28,6 +31,9 @@ for (const ep of endpoints) {
     platform: 'node',
     target: 'node22',
     format: 'esm',
+    // Bundled CommonJS dependencies may call require(); give ESM output one.
+    banner: { js: "import { createRequire as __cr } from 'module'; const require = __cr(import.meta.url);" },
+    logLevel: 'warning',
   });
   console.log(`[API Build] Compiled ${ep.in} -> ${ep.out}`);
 }

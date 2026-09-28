@@ -1,102 +1,95 @@
-import {
-  handleCors,
-  sendJson,
-  parseBody,
-  checkAuth,
-  recordServerReceipt,
-  calculateDigest,
-  sharedCvState,
-} from './_utils';
+/**
+ * GET  /api/sync-cv — current CV version and checksum.
+ * POST /api/sync-cv — push a (partial) CV from Emeron / CV tooling.
+ *
+ * Accepts either key. The payload is validated as a whole before anything is
+ * saved, so a bad push leaves the live CV untouched.
+ */
+import { authenticate, methodNotAllowed, readJson, requireRole, route, sendJson, sha256 } from './_lib/http';
+import { getProfile, recordEvent, saveProfile } from './_lib/store';
+import { ValidationError, mergeCvPayload } from './_lib/validate';
 
-export default async function handler(req: any, res: any) {
-  if (handleCors(req, res)) return;
+export default route(async (req, res) => {
+  const startedAt = performance.now();
+  const auth = authenticate(req);
 
-  const start = performance.now();
-  const auth = checkAuth(req);
-
-  if (!auth.isValid) {
-    recordServerReceipt({
+  if (!auth.ok) {
+    await recordEvent({
       actionType: 'CV_INGEST',
-      caller: 'Unknown / Unauthorized Client',
+      caller: 'unauthenticated',
       status: 'UNAUTHORIZED',
-      statusCode: 401,
-      latencyMs: performance.now() - start,
-      summary: 'Rejected unauthorized CV synchronization attempt.',
-    });
-
-    return sendJson(res, auth.statusCode || 401, {
-      success: false,
-      error: auth.error,
+      statusCode: auth.status || 401,
+      startedAt,
+      summary: 'Rejected CV sync without a valid key.',
     });
   }
+  if (!requireRole(res, auth, ['jarvis_master', 'client_sync'])) return;
 
   if (req.method === 'GET') {
+    const profile = await getProfile();
     return sendJson(res, 200, {
-      status: 'active',
-      version: sharedCvState.version,
-      lastSyncedAt: sharedCvState.rawCvMetadata?.parsedAt || new Date().toISOString(),
-      fullName: sharedCvState.fullName,
-      checksum: sharedCvState.rawCvMetadata?.checksum,
+      success: true,
+      version: profile.version,
+      fullName: profile.fullName,
+      lastSyncedAt: profile.rawCvMetadata?.parsedAt ?? null,
+      checksum: profile.rawCvMetadata?.checksum ?? null,
+      counts: {
+        experiences: profile.experiences.length,
+        certifications: profile.certifications.length,
+        education: profile.education.length,
+      },
     });
   }
+  if (req.method !== 'POST') return methodNotAllowed(res, ['GET', 'POST']);
 
-  if (req.method !== 'POST') {
-    return sendJson(res, 405, { success: false, error: 'Method Not Allowed. Use POST.' });
+  const body = await readJson(req);
+  const current = await getProfile();
+  let next;
+  try {
+    next = mergeCvPayload(current, body);
+  } catch (e) {
+    if (e instanceof ValidationError) return sendJson(res, 400, { success: false, error: e.message });
+    throw e;
   }
 
-  const payload = await parseBody(req);
-
-  if (!payload || typeof payload !== 'object') {
-    return sendJson(res, 400, { success: false, error: 'Invalid CV payload format.' });
+  const checksum = `sha256:${sha256({ ...next, rawCvMetadata: undefined, version: undefined })}`;
+  if ('version' in body === false) {
+    // Bump the patch number so every accepted sync is distinguishable.
+    const m = /^v?(\d+)\.(\d+)\.(\d+)$/.exec(current.version || '');
+    next.version = m ? `v${m[1]}.${m[2]}.${Number(m[3]) + 1}` : 'v1.0.0';
   }
-
-  // Merge inbound CV data
-  if (payload.fullName) sharedCvState.fullName = payload.fullName;
-  if (payload.headline) sharedCvState.headline = payload.headline;
-  if (payload.summary) sharedCvState.summary = payload.summary;
-  if (payload.location) sharedCvState.location = payload.location;
-  if (payload.email) sharedCvState.email = payload.email;
-  if (payload.phone) sharedCvState.phone = payload.phone;
-  if (payload.githubUrl) sharedCvState.githubUrl = payload.githubUrl;
-  if (payload.linkedinUrl) sharedCvState.linkedinUrl = payload.linkedinUrl;
-  if (payload.websiteUrl) sharedCvState.websiteUrl = payload.websiteUrl;
-  if (Array.isArray(payload.experiences)) sharedCvState.experiences = payload.experiences;
-  if (payload.skills) sharedCvState.skills = payload.skills;
-  if (Array.isArray(payload.certifications)) sharedCvState.certifications = payload.certifications;
-  if (Array.isArray(payload.education)) sharedCvState.education = payload.education;
-
-  const checksum = calculateDigest(payload);
-  sharedCvState.version = payload.version || `v2.${Math.floor(Math.random() * 5) + 5}.0`;
-  sharedCvState.rawCvMetadata = {
-    parserSource: payload.rawCvMetadata?.parserSource || 'Emeron CV Parsing Engine v2.5-LiveSync',
-    confidenceScore: payload.rawCvMetadata?.confidenceScore || 0.994,
+  next.rawCvMetadata = {
+    parserSource: typeof body.rawCvMetadata?.parserSource === 'string'
+      ? body.rawCvMetadata.parserSource.slice(0, 120)
+      : auth.clientId || 'api',
+    confidenceScore: typeof body.rawCvMetadata?.confidenceScore === 'number' ? body.rawCvMetadata.confidenceScore : undefined,
     parsedAt: new Date().toISOString(),
     checksum,
   };
+  await saveProfile(next);
 
-  const receipt = recordServerReceipt({
+  const receipt = await recordEvent({
     actionType: 'CV_INGEST',
-    caller: auth.clientId || 'Emeron CV Parser',
+    caller: auth.clientId!,
     status: 'SUCCESS',
     statusCode: 200,
-    latencyMs: performance.now() - start,
-    summary: `Synchronized ${sharedCvState.fullName}'s resume records (${sharedCvState.version}) via Emeron webhook.`,
-    payload: { version: sharedCvState.version, checksum, experienceCount: sharedCvState.experiences.length },
-    details: { recordsUpdated: sharedCvState.experiences.length + 8 },
+    startedAt,
+    summary: `CV synchronised to ${next.version}.`,
+    payload: { version: next.version, checksum },
+    details: { fields: Object.keys(body).filter((k) => k !== 'rawCvMetadata') },
   });
 
   return sendJson(res, 200, {
     success: true,
-    message: 'Profile data cache successfully synchronized and persisted.',
-    recordsUpdated: {
-      experiences: sharedCvState.experiences.length,
-      skills: Object.keys(sharedCvState.skills).length,
-      certifications: sharedCvState.certifications.length,
-      education: sharedCvState.education.length,
-    },
-    version: sharedCvState.version,
+    version: next.version,
     checksum,
+    recordsUpdated: {
+      experiences: next.experiences.length,
+      skills: (Object.values(next.skills) as Array<string[] | undefined>).reduce((n, list) => n + (list?.length || 0), 0),
+      certifications: next.certifications.length,
+      education: next.education.length,
+    },
     receiptId: receipt.receiptId,
     timestamp: receipt.timestamp,
   });
-}
+});

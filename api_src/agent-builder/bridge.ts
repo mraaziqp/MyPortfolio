@@ -1,59 +1,57 @@
-import {
-  handleCors,
-  sendJson,
-  parseBody,
-  checkAuth,
-  recordServerReceipt,
-  dispatchToJarvisWebhook,
-} from '../_utils';
+/**
+ * GET  /api/agent-builder/bridge — status of the relay (public; no secrets).
+ * POST /api/agent-builder/bridge — forward an event to Jarvis (Jarvis key).
+ *
+ * Posting needs the key: an open relay would let anyone push messages into
+ * the assistant.
+ */
+import { authenticate, methodNotAllowed, readJson, requireRole, route, sendJson } from '../_lib/http';
+import { jarvisHostForDisplay, sendToJarvis } from '../_lib/notify';
+import { recordEvent } from '../_lib/store';
+import { ValidationError, str } from '../_lib/validate';
 
-export default async function handler(req: any, res: any) {
-  if (handleCors(req, res)) return;
-
-  const start = performance.now();
-  const auth = checkAuth(req);
+export default route(async (req, res) => {
+  const startedAt = performance.now();
 
   if (req.method === 'GET') {
-    // Health / connectivity check for IDE and PC Agent Builder
     return sendJson(res, 200, {
-      bridge: 'Jarvis & Agent Builder PC/IDE Gateway Bridge',
-      status: 'active',
-      jarvisLocalTarget: 'http://localhost:3005',
-      jarvisRemoteTarget: 'https://jarvis.savestate.co.za',
-      supportedClients: ['AgentBuilder-PC', 'Antigravity-IDE', 'Cursor', 'Claude-Desktop'],
-      activeKey: 'jb_live_sk_bc8030782491116677c88743d165331284bc6aacad03100a',
+      bridge: 'Agent Builder / IDE → Jarvis relay',
+      status: jarvisHostForDisplay() ? 'active' : 'not_configured',
+      auth: 'POST requires the Jarvis key (Authorization: Bearer or x-jarvis-key).',
     });
   }
+  if (req.method !== 'POST') return methodNotAllowed(res, ['GET', 'POST']);
 
-  if (req.method !== 'POST') {
-    return sendJson(res, 405, { success: false, error: 'Method Not Allowed' });
+  const auth = authenticate(req);
+  if (!requireRole(res, auth, ['jarvis_master'])) return;
+
+  const body = await readJson(req);
+  let title: string, message: string, sender: string;
+  try {
+    title = str(body.title, 'title', 200, false) || 'Agent Builder event';
+    message = str(body.message, 'message', 10_000, false) || JSON.stringify(body.metadata ?? {});
+    sender = str(body.sender, 'sender', 120, false) || 'AgentBuilder';
+  } catch (e) {
+    if (e instanceof ValidationError) return sendJson(res, 400, { success: false, error: e.message });
+    throw e;
   }
 
-  const body = await parseBody(req);
-  const { eventType, sender, title, message, metadata } = body;
-
-  const dispatchResult = await dispatchToJarvisWebhook({
-    sender: sender || 'AgentBuilder/IDE-Bridge',
-    subject: title || 'Agent Builder Pipeline Event',
-    body: message || JSON.stringify(metadata || {}),
-    details: metadata || {},
-    type: eventType || 'event',
+  const result = await sendToJarvis({
+    type: body.eventType === 'alert' ? 'alert' : 'event',
+    sender,
+    subject: title,
+    body: message,
+    details: body.metadata && typeof body.metadata === 'object' ? body.metadata : {},
   });
-
-  const receipt = recordServerReceipt({
-    actionType: 'JARVIS_ACTION',
-    caller: sender || 'AgentBuilder-PC',
-    status: dispatchResult.success ? 'SUCCESS' : 'FAILED',
-    statusCode: dispatchResult.success ? 200 : 502,
-    latencyMs: performance.now() - start,
-    summary: `Relayed event from ${sender || 'Agent Builder'} to Jarvis assistant engine.`,
-    payload: { title, message, dispatchResult },
+  const status = result.delivered ? 200 : result.skipped ? 503 : 502;
+  const receipt = await recordEvent({
+    actionType: 'JARVIS_RELAY',
+    caller: sender,
+    status: result.delivered ? 'SUCCESS' : 'FAILED',
+    statusCode: status,
+    startedAt,
+    summary: `Relayed "${title}" to Jarvis${result.delivered ? '' : ` — ${result.error}`}.`,
+    payload: { title },
   });
-
-  return sendJson(res, dispatchResult.success ? 200 : 502, {
-    success: dispatchResult.success,
-    receiptId: receipt.receiptId,
-    jarvisResponse: dispatchResult.response,
-    error: dispatchResult.error,
-  });
-}
+  return sendJson(res, status, { success: result.delivered, receiptId: receipt.receiptId, error: result.error });
+});

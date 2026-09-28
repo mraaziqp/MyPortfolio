@@ -1,38 +1,86 @@
 <!doctype html>
-<html lang="en">
+<html lang="en-ZA">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <title>Mohammed Parker — Full-Stack Developer &amp; Enterprise IT Specialist</title>
+    <title>Mohammed Parker — Software Engineer &amp; Systems Administrator</title>
     <meta
       name="description"
-      content="Solutions engineer in Cape Town bridging enterprise IT operations (VMware, Hyper-V, Active Directory) with resilient full-stack web applications. AWS Certified Cloud Practitioner."
+      content="Mohammed Parker — software engineer and systems administrator in Cape Town. Enterprise VMware, Hyper-V and Active Directory at BCX; full-stack Next.js, TypeScript and PostgreSQL platforms. AWS Certified Cloud Practitioner."
     />
     <meta name="author" content="Mohammed Parker" />
-    <link rel="canonical" href="https://mraaziqp.vercel.app/" />
-    <meta name="theme-color" content="#0b0f1a" />
+    <link rel="canonical" href="https://portfolio.arpcloudsolutions.co.za/" />
+
+    <!-- Icons: the MP monogram replaces the browser's default globe. -->
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+    <meta name="theme-color" content="#f6f6f3" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0b0f14" media="(prefers-color-scheme: dark)" />
 
     <!-- Open Graph: what LinkedIn, WhatsApp and Slack show when the link is shared. -->
-    <meta property="og:type" content="website" />
+    <meta property="og:type" content="profile" />
     <meta property="og:site_name" content="Mohammed Parker" />
-    <meta property="og:title" content="Mohammed Parker — Full-Stack Developer &amp; Enterprise IT Specialist" />
+    <meta property="og:title" content="Mohammed Parker — Software Engineer &amp; Systems Administrator" />
     <meta
       property="og:description"
-      content="Enterprise IT operations and full-stack engineering. 99.98% virtualization uptime, 150+ node VM fleet, AWS Certified Cloud Practitioner."
+      content="Enterprise infrastructure at BCX and full-stack product engineering. AWS Certified Cloud Practitioner, Cape Town."
     />
-    <meta property="og:url" content="https://mraaziqp.vercel.app/" />
+    <meta property="og:url" content="https://portfolio.arpcloudsolutions.co.za/" />
+    <meta property="og:image" content="https://portfolio.arpcloudsolutions.co.za/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Mohammed Parker — Software Engineer & Systems Administrator" />
     <meta property="og:locale" content="en_ZA" />
-
+    <meta property="profile:first_name" content="Mohammed" />
+    <meta property="profile:last_name" content="Parker" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Mohammed Parker — Full-Stack Developer &amp; Enterprise IT Specialist" />
-    <meta
-      name="twitter:description"
-      content="Enterprise IT operations and full-stack engineering, based in Cape Town."
+    <meta name="twitter:title" content="Mohammed Parker — Software Engineer &amp; Systems Administrator" />
+    <meta name="twitter:description" content="Enterprise infrastructure and full-stack engineering, based in Cape Town." />
+    <meta name="twitter:image" content="https://portfolio.arpcloudsolutions.co.za/og-image.png" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Person",
+        "name": "Mohammed Parker",
+        "jobTitle": "Software Engineer & Systems Administrator",
+        "url": "https://portfolio.arpcloudsolutions.co.za/",
+        "email": "mailto:mraaziqp@gmail.com",
+        "address": { "@type": "PostalAddress", "addressLocality": "Cape Town", "addressCountry": "ZA" },
+        "worksFor": { "@type": "Organization", "name": "BCX" },
+        "alumniOf": { "@type": "CollegeOrUniversity", "name": "Cape Peninsula University of Technology" },
+        "hasCredential": { "@type": "EducationalOccupationalCredential", "name": "AWS Certified Cloud Practitioner" },
+        "sameAs": ["https://linkedin.com/in/mohammedparker", "https://github.com/mraaziqp"]
+      }
+    </script>
+
+    <!-- Apply the saved theme before first paint so there is no flash. -->
+    <script>
+      try {
+        var t = localStorage.getItem('theme');
+        if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+      } catch (e) {}
+    </script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Inter+Tight:wght@600;700&family=JetBrains+Mono:wght@400;500&display=swap"
     />
   </head>
   <body>
     <div id="root"></div>
+    <noscript>
+      <p style="font-family: system-ui, sans-serif; padding: 2rem">
+        Mohammed Parker — Software Engineer &amp; Systems Administrator, Cape Town.
+        <a href="/Mohammed_Parker_CV.pdf">Download the CV (PDF)</a> or email
+        <a href="mailto:mraaziqp@gmail.com">mraaziqp@gmail.com</a>.
+      </p>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

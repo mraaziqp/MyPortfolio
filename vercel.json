@@ -3,22 +3,32 @@
   "framework": "vite",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "rewrites": [
-    { "source": "/((?!api/).*)", "destination": "/" }
+  "rewrites": [{ "source": "/((?!api/).*)", "destination": "/index.html" }],
+  "redirects": [
+    { "source": "/(.*)", "has": [{ "type": "host", "value": "raaziq.arpcloudsolutions.co.za" }], "destination": "https://portfolio.arpcloudsolutions.co.za/$1", "permanent": true },
+    { "source": "/(.*)", "has": [{ "type": "host", "value": "mraaziqp.vercel.app" }], "destination": "https://portfolio.arpcloudsolutions.co.za/$1", "permanent": false },
+    { "source": "/cv", "destination": "/Mohammed_Parker_CV.pdf", "permanent": false }
   ],
   "headers": [
     {
       "source": "/assets/(.*)",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
-      ]
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+    },
+    {
+      "source": "/(favicon.ico|favicon.svg|apple-touch-icon.png|icon-192.png|icon-512.png|icon-maskable-512.png|og-image.png)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=604800" }]
     },
     {
       "source": "/(.*)",
       "headers": [
         { "key": "X-Content-Type-Options", "value": "nosniff" },
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-        { "key": "X-Frame-Options", "value": "SAMEORIGIN" }
+        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=()" },
+        { "key": "Strict-Transport-Security", "value": "max-age=63072000; includeSubDomains" },
+        {
+          "key": "Content-Security-Policy",
+          "value": "frame-ancestors 'self' https://arpcloudsolutions.co.za https://*.arpcloudsolutions.co.za https://*.savestate.co.za http://localhost:*"
+        }
       ]
     }
   ]

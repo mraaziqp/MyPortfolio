@@ -1,67 +1,42 @@
-import {
-  handleCors,
-  sendJson,
-  parseBody,
-  checkAuth,
-  recordServerReceipt,
-  sharedTelemetryState,
-  sharedInquiries,
-} from './_utils';
-import { SHOWCASE_PROJECTS } from '../src/data/initialData';
+/**
+ * POST /api/telemetry — anonymous counters from the site (page view, project view/click).
+ * GET  /api/telemetry — the totals (either key).
+ *
+ * Only known slugs are counted, so the table cannot be filled with junk rows.
+ */
+import { authenticate, methodNotAllowed, readJson, requireRole, route, sendJson } from './_lib/http';
+import { TELEMETRY_EVENTS, TelemetryEvent, getProjects, getTelemetry, inquiryCounts, incrementTelemetry } from './_lib/store';
 
-export default async function handler(req: any, res: any) {
-  if (handleCors(req, res)) return;
-
-  const start = performance.now();
-  const auth = checkAuth(req);
-
+export default route(async (req, res) => {
   if (req.method === 'POST') {
-    // Record client interaction event
-    const body = await parseBody(req);
-    const { projectSlug, eventType } = body;
+    const body = await readJson(req);
+    const slug = typeof body.slug === 'string' ? body.slug : body.projectSlug;
+    const event = (body.event ?? body.eventType) as TelemetryEvent;
+    const known = slug === 'site' || (await getProjects()).some((p) => p.slug === slug);
 
-    if (projectSlug) {
-      if (eventType === 'view') {
-        sharedTelemetryState.views[projectSlug as keyof typeof sharedTelemetryState.views] =
-          (sharedTelemetryState.views[projectSlug as keyof typeof sharedTelemetryState.views] || 0) + 1;
-        sharedTelemetryState.totalViews += 1;
-      } else {
-        sharedTelemetryState.interactions[projectSlug as keyof typeof sharedTelemetryState.interactions] =
-          (sharedTelemetryState.interactions[projectSlug as keyof typeof sharedTelemetryState.interactions] || 0) + 1;
-      }
+    if (!known || !TELEMETRY_EVENTS.includes(event)) {
+      return sendJson(res, 400, { success: false, error: 'Unknown slug or event.' });
     }
-
-    return sendJson(res, 200, {
-      success: true,
-      currentStats: sharedTelemetryState,
-    });
+    await incrementTelemetry(slug, event);
+    res.statusCode = 204;
+    return res.end();
   }
+  if (req.method !== 'GET') return methodNotAllowed(res, ['GET', 'POST']);
 
-  // GET: LifeStack Analytics Export
-  const projectMetrics = SHOWCASE_PROJECTS.map((proj) => ({
-    projectSlug: proj.slug,
-    projectName: proj.title,
-    views: sharedTelemetryState.views[proj.slug as keyof typeof sharedTelemetryState.views] || 45,
-    interactions: sharedTelemetryState.interactions[proj.slug as keyof typeof sharedTelemetryState.interactions] || 12,
-    lastActive: new Date().toISOString(),
-  }));
+  const auth = authenticate(req);
+  if (!requireRole(res, auth, ['jarvis_master', 'client_sync'])) return;
 
-  const exportPayload = {
-    totalViews: sharedTelemetryState.totalViews,
-    projects: projectMetrics,
-    recentInquiriesCount: sharedInquiries.length + 8,
-    lastSyncedAt: new Date().toISOString(),
-  };
-
-  recordServerReceipt({
-    actionType: 'TELEMETRY_EXPORT',
-    caller: auth.isValid ? auth.clientId || 'LifeStackAnalytics' : 'PublicTelemetryConsumer',
-    status: 'SUCCESS',
-    statusCode: 200,
-    latencyMs: performance.now() - start,
-    summary: 'Dispatched real-time engagement telemetry to LifeStack / Analytics consumer.',
-    payload: { totalViews: exportPayload.totalViews },
+  const [telemetry, projects, inquiries] = await Promise.all([getTelemetry(), getProjects(), inquiryCounts()]);
+  return sendJson(res, 200, {
+    success: true,
+    totalViews: telemetry.totalViews,
+    projects: projects.map((p) => ({
+      projectSlug: p.slug,
+      projectName: p.title,
+      views: telemetry.projects[p.slug]?.views ?? 0,
+      clicks: telemetry.projects[p.slug]?.clicks ?? 0,
+    })),
+    inquiries,
+    generatedAt: new Date().toISOString(),
   });
-
-  return sendJson(res, 200, exportPayload);
-}
+});

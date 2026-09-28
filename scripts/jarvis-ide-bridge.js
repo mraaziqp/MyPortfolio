@@ -8,10 +8,20 @@
  *   node scripts/jarvis-ide-bridge.js notify "Build Complete" "Vercel deployment finished successfully"
  */
 
+// The webhook key is a secret: read it from the environment, never commit it.
+//   JARVIS_WEBHOOK_KEY=jb_live_sk_...  (required)
+//   JARVIS_LOCAL_URL / JARVIS_PUBLIC_URL (optional base URLs)
+const key = process.env.JARVIS_WEBHOOK_KEY;
+if (!key) {
+  console.error('Set JARVIS_WEBHOOK_KEY (and optionally JARVIS_PUBLIC_URL) before running this script.');
+  process.exit(1);
+}
 const JARVIS_CONFIG = {
-  localWebhookUrl: 'http://localhost:3005/api/assistant/webhook/jb_live_sk_bc8030782491116677c88743d165331284bc6aacad03100a',
-  remoteWebhookUrl: 'https://jarvis.savestate.co.za/api/assistant/webhook/jb_live_sk_bc8030782491116677c88743d165331284bc6aacad03100a',
-  userId: 'a009e210-f221-4de4-9428-dae96d68a39e',
+  localWebhookUrl: `${process.env.JARVIS_LOCAL_URL || 'http://localhost:3005'}/api/assistant/webhook/${key}`,
+  remoteWebhookUrl: process.env.JARVIS_PUBLIC_URL
+    ? `${process.env.JARVIS_PUBLIC_URL.replace(/\/$/, '')}/api/assistant/webhook/${key}`
+    : null,
+  userId: process.env.JARVIS_USER_ID,
   sender: 'AgentBuilder-PC/Antigravity-IDE',
 };
 
@@ -27,7 +37,7 @@ async function dispatchWebhook(subject, body, details = {}) {
     timestamp: new Date().toISOString(),
   };
 
-  const targets = [JARVIS_CONFIG.localWebhookUrl, JARVIS_CONFIG.remoteWebhookUrl];
+  const targets = [JARVIS_CONFIG.localWebhookUrl, JARVIS_CONFIG.remoteWebhookUrl].filter(Boolean);
 
   for (const targetUrl of targets) {
     try {

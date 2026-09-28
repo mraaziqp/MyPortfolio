@@ -1,55 +1,45 @@
 import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import { defineConfig, Plugin } from 'vite';
+import { defineConfig, loadEnv, Plugin } from 'vite';
 
+/**
+ * Serves the API from api_src/ during `npm run dev`, mirroring the Vercel
+ * Function routes, so the site and its endpoints can be exercised locally.
+ */
 function apiDevPlugin(): Plugin {
+  const routes: Array<[RegExp, string]> = [
+    [/^\/api\/jarvis(\/|$)/, '/api_src/jarvis/[...slug].ts'],
+    [/^\/api\/dashboard(\/|$)/, '/api_src/dashboard/[...slug].ts'],
+    [/^\/api\/agent-builder\/bridge$/, '/api_src/agent-builder/bridge.ts'],
+    [/^\/api\/sync-cv$/, '/api_src/sync-cv.ts'],
+    [/^\/api\/telemetry$/, '/api_src/telemetry.ts'],
+    [/^\/api\/contact$/, '/api_src/contact.ts'],
+    [/^\/api\/profile$/, '/api_src/profile.ts'],
+    [/^\/api\/health$/, '/api_src/health.ts'],
+  ];
   return {
     name: 'api-dev-server',
     configureServer(server) {
       server.middlewares.use(async (req, res, next) => {
-        if (!req.url || !req.url.startsWith('/api/')) {
-          return next();
-        }
-
-        const urlObj = new URL(req.url, 'http://localhost:3000');
-        const pathname = urlObj.pathname;
-
-        try {
-          let handlerModule: any = null;
-          if (pathname.startsWith('/api/jarvis/')) {
-            handlerModule = await import('./api/jarvis/[...slug].ts');
-          } else if (pathname.startsWith('/api/dashboard/')) {
-            handlerModule = await import('./api/dashboard/[...slug].ts');
-          } else if (pathname === '/api/agent-builder/bridge') {
-            handlerModule = await import('./api/agent-builder/bridge.ts');
-          } else if (pathname === '/api/sync-cv') {
-            handlerModule = await import('./api/sync-cv.ts');
-          } else if (pathname === '/api/telemetry') {
-            handlerModule = await import('./api/telemetry.ts');
-          } else if (pathname === '/api/contact') {
-            handlerModule = await import('./api/contact.ts');
-          }
-
-          if (handlerModule && handlerModule.default) {
-            await handlerModule.default(req, res);
-            return;
-          }
-        } catch (e: any) {
-          console.error('[API Dev Plugin Error]', e);
-          res.statusCode = 500;
+        if (!req.url?.startsWith('/api/')) return next();
+        const pathname = new URL(req.url, 'http://localhost').pathname;
+        const match = routes.find(([re]) => re.test(pathname));
+        if (!match) {
+          res.statusCode = 404;
           res.setHeader('Content-Type', 'application/json');
-          res.end(JSON.stringify({ error: e.message }));
-          return;
+          return res.end(JSON.stringify({ success: false, error: 'Not found' }));
         }
-
-        next();
+        const mod = await server.ssrLoadModule(match[1]);
+        await mod.default(req, res);
       });
     },
   };
 }
 
-export default defineConfig(() => {
+export default defineConfig(({ mode }) => {
+  // Expose non-VITE_ variables to the dev API handlers (never to the client bundle).
+  Object.assign(process.env, loadEnv(mode, process.cwd(), ''), process.env);
   return {
     plugins: [react(), tailwindcss(), apiDevPlugin()],
     resolve: {

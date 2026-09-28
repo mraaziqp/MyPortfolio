@@ -11,7 +11,11 @@ export const INITIAL_CV_DATA: CvSyncPayload = {
   phone: '+27 83 786 4913',
   githubUrl: 'https://github.com/mraaziqp',
   linkedinUrl: 'https://linkedin.com/in/mohammedparker',
-  websiteUrl: 'https://mraaziqp.vercel.app',
+  websiteUrl: 'https://portfolio.arpcloudsolutions.co.za',
+  availability: {
+    openToWork: true,
+    note: 'Open to software engineering and infrastructure roles',
+  },
   experiences: [
     {
       id: 'exp-bcx',
@@ -100,7 +104,7 @@ export const INITIAL_CV_DATA: CvSyncPayload = {
       id: 'cert-aws',
       name: 'AWS Certified Cloud Practitioner',
       issuer: 'Amazon Web Services (AWS)',
-      issueDate: 'Valid Thru 2026',
+      issueDate: '',
       badgeUrl: 'https://aws.amazon.com/certification/certified-cloud-practitioner/'
     },
     {
@@ -147,126 +151,101 @@ export const INITIAL_CV_DATA: CvSyncPayload = {
     }
   ],
   rawCvMetadata: {
-    parserSource: 'Official Mohammed Parker Verified Resume',
-    confidenceScore: 1.0,
-    parsedAt: new Date().toISOString(),
-    checksum: 'sha256:mohammed_parker_cv_verified_2026'
+    parserSource: 'Mohammed_Parker_CV.pdf',
+    parsedAt: '2026-09-25T00:00:00.000Z'
   }
 };
 
+// Links are only listed where they resolve (checked 2026-09-28); private
+// codebases have no GitHub link rather than one that 404s.
 export const SHOWCASE_PROJECTS: ProjectShowcaseItem[] = [
   {
-    id: 'proj-lifestack',
-    slug: 'lifestack',
-    title: 'LifeStack',
-    tagline: 'AI-Powered Project Management & Personal Assistant Web Application',
+    id: 'proj-emeron',
+    slug: 'emeron',
+    title: 'Emeron',
+    tagline: 'Enterprise recruitment platform',
     description:
-      'Engineered an AI-powered project management and personal assistant web application using Next.js, React, and TypeScript. Integrated intelligent schedule optimization, automated activity tracking, and RESTful API endpoints for personalized productivity workflows.',
-    role: 'Full-Stack Engineer',
-    category: 'Productivity Systems',
+      'End-to-end talent acquisition platform with automated CV parsing, algorithmic candidate shortlisting and role-based client portals.',
+    role: 'Full-Stack Developer',
+    category: 'Enterprise SaaS',
     featured: true,
-    technologies: ['Next.js', 'React', 'TypeScript', 'Tailwind CSS', 'REST APIs', 'AI Scheduling'],
-    metrics: [
-      { label: 'Schedule Engine', value: 'Automated' },
-      { label: 'Stack Architecture', value: 'Next.js & React' },
-      { label: 'API Protocols', value: 'RESTful Endpoints' }
-    ],
-    liveUrl: 'https://lifestack.co.za',
-    githubUrl: 'https://github.com/mraaziqp/lifestack-ai'
-  },
-  {
-    id: 'proj-vr-phobia',
-    slug: 'vr-phobia',
-    title: 'VR Phobia Therapy',
-    tagline: 'Immersive Virtual Reality Exposure Therapy Application',
-    description:
-      'Developing an immersive Virtual Reality application in Unity Engine and C# designed for controlled exposure therapy to assist individuals with phobias. Designed spatial interaction mechanics, dynamic VR environments, and real-time behavioral feedback loops.',
-    role: 'XR Developer',
-    category: 'XR & Simulation',
-    featured: true,
-    technologies: ['Unity (XR)', 'C#', 'Virtual Reality', 'Spatial Mechanics', 'Behavioral Feedback', '3D Graphics'],
-    metrics: [
-      { label: 'Platform Engine', value: 'Unity & C#' },
-      { label: 'Interaction Model', value: 'Spatial 3D Mechanics' },
-      { label: 'Therapeutic Feedback', value: 'Real-time Loops' }
-    ],
-    githubUrl: 'https://github.com/mraaziqp'
+    status: 'live',
+    technologies: ['Next.js', 'TypeScript', 'PostgreSQL', 'CV parsing', 'Role-based access'],
+    metrics: [],
+    liveUrl: 'https://emeron.co.za',
   },
   {
     id: 'proj-hustle-studio',
     slug: 'hustle-studio',
     title: 'Hustle Studio',
-    tagline: 'Multi-Tenant Business Operations Platform & Point-of-Sale (POS)',
+    tagline: 'Multi-tenant business operations & point of sale',
     description:
-      'Architected a multi-tenant business operations platform featuring point-of-sale (POS) systems, financial tracking, and embedded AI copilots. Implemented multi-tenant database isolation and query optimizations to support high-availability operations.',
+      'Multi-tenant business operations platform with point-of-sale, financial tracking and embedded AI copilots. Implemented tenant data isolation and query optimisation for high-availability operation.',
     role: 'Lead Full-Stack Developer',
     category: 'Enterprise SaaS',
     featured: true,
-    technologies: ['Next.js', 'PostgreSQL', 'TypeScript', 'Multi-Tenant DB', 'Embedded AI Copilots', 'POS Systems'],
-    metrics: [
-      { label: 'Architecture', value: 'Multi-Tenant' },
-      { label: 'Availability', value: 'High Availability' },
-      { label: 'Core Capabilities', value: 'POS & AI Copilots' }
-    ],
-    liveUrl: 'https://hustlestudio.co.za',
-    githubUrl: 'https://github.com/mraaziqp/hustle-studio'
+    status: 'in-development',
+    technologies: ['Next.js', 'TypeScript', 'PostgreSQL', 'Multi-tenancy', 'AI copilots'],
+    metrics: [],
   },
   {
-    id: 'proj-emeron',
-    slug: 'emeron',
-    title: 'Emeron',
-    tagline: 'Enterprise Talent Acquisition & Automated CV Intelligence Platform',
+    id: 'proj-lifestack',
+    slug: 'lifestack',
+    title: 'LifeStack',
+    tagline: 'AI-powered project management & personal assistant',
     description:
-      'Developed an end-to-end talent acquisition platform featuring automated CV parsing, algorithmic candidate shortlisting, and role-based client portals. Integrates bidirectional webhook synchronization with live portfolio caches and enterprise stores.',
-    role: 'Full-Stack Developer',
-    category: 'Enterprise Intelligence',
+      'Project management and personal assistant web app with intelligent schedule optimisation, automated activity tracking and REST endpoints for personalised productivity workflows.',
+    role: 'Full-Stack Engineer',
+    category: 'Productivity',
     featured: true,
-    syncSource: true,
-    technologies: ['Next.js', 'TypeScript', 'PostgreSQL', 'Automated CV Parsing', 'Role-Based Portals', 'Secure Webhooks'],
-    metrics: [
-      { label: 'Parsing Engine', value: 'Automated CV Parsing' },
-      { label: 'Shortlisting Model', value: 'Algorithmic Match' },
-      { label: 'Sync Latency', value: '<140ms Ingress' }
-    ],
-    liveUrl: '#sync-inspector',
-    githubUrl: 'https://github.com/mraaziqp/emeron-cv-parser'
-  },
-  {
-    id: 'proj-xpfinance',
-    slug: 'xpfinance',
-    title: 'XPFinance',
-    tagline: 'Personal Finance & Expense Management Analytics Engine',
-    description:
-      'Built a personal finance and expense management application with interactive analytics dashboards, transaction categorization, and budget tracking.',
-    role: 'Full-Stack Developer',
-    category: 'Financial Technology',
-    featured: true,
-    technologies: ['Next.js', 'TypeScript', 'PostgreSQL', 'Interactive Dashboards', 'Transaction Categorization', 'Budget Tracking'],
-    metrics: [
-      { label: 'Dashboard UX', value: 'Interactive Analytics' },
-      { label: 'Categorization', value: 'Algorithmic' },
-      { label: 'Financial Guard', value: 'Real-Time Budgeting' }
-    ],
-    liveUrl: 'https://xpfinance.co.za',
-    githubUrl: 'https://github.com/mraaziqp'
+    status: 'in-development',
+    technologies: ['Next.js', 'React', 'TypeScript', 'Tailwind CSS', 'REST APIs'],
+    metrics: [],
   },
   {
     id: 'proj-verifiedbizlink',
     slug: 'verifiedbizlink',
     title: 'VerifiedBizLink & TotalLŸ',
-    tagline: 'B2B Verification Networks & Multi-Tenant Service Booking Platforms',
+    tagline: 'B2B verification network & service booking platforms',
     description:
-      'Built B2B verification networks and multi-tenant service booking platforms with custom administrative control centers, secure database schemas, and automated verification pipelines.',
+      'B2B verification network and multi-tenant service booking platforms with custom admin control centres, document vetting pipelines and secure database schemas.',
     role: 'Full-Stack Developer',
-    category: 'B2B Verification',
+    category: 'B2B Platforms',
     featured: true,
-    technologies: ['Next.js', 'TypeScript', 'PostgreSQL', 'Multi-Tenant Booking', 'B2B Verification', 'Admin Centers'],
-    metrics: [
-      { label: 'Platform Scope', value: 'B2B Verification' },
-      { label: 'Booking Engine', value: 'Multi-Tenant' },
-      { label: 'Control Plane', value: 'Custom Admin Centers' }
-    ],
-    liveUrl: 'https://verifiedbizlink.co.za',
-    githubUrl: 'https://github.com/mraaziqp'
-  }
+    status: 'live',
+    technologies: ['Next.js', 'TypeScript', 'PostgreSQL', 'Multi-tenant booking', 'Admin tooling'],
+    metrics: [],
+    liveUrl: 'https://www.verifiedbizlink.co.za',
+    githubUrl: 'https://github.com/mraaziqp/VerifiedBizLink',
+    links: [{ label: 'totally.co.za', url: 'https://www.totally.co.za' }],
+  },
+  {
+    id: 'proj-xpfinance',
+    slug: 'xpfinance',
+    title: 'XPFinance',
+    tagline: 'Personal finance & expense analytics',
+    description:
+      'Personal finance and expense management app with interactive analytics dashboards, transaction categorisation and budget tracking.',
+    role: 'Full-Stack Developer',
+    category: 'FinTech',
+    featured: true,
+    status: 'live',
+    technologies: ['Next.js', 'TypeScript', 'PostgreSQL', 'Data visualisation'],
+    metrics: [],
+    liveUrl: 'https://www.xpfinance.co.za',
+  },
+  {
+    id: 'proj-vr-phobia',
+    slug: 'vr-phobia',
+    title: 'VR Phobia Therapy',
+    tagline: 'Virtual reality exposure therapy',
+    description:
+      'Immersive VR application for controlled exposure therapy, helping people work through phobias. Designed the spatial interaction mechanics, dynamic environments and real-time behavioural feedback loops.',
+    role: 'XR Developer',
+    category: 'XR & Simulation',
+    featured: true,
+    status: 'in-development',
+    technologies: ['Unity', 'C#', 'Virtual reality', '3D interaction design'],
+    metrics: [],
+  },
 ];

@@ -25,6 +25,13 @@ var env = {
   siteUrl: (read("SITE_URL") || "https://portfolio.arpcloudsolutions.co.za").replace(/\/$/, ""),
   isProduction: process.env.VERCEL_ENV === "production"
 };
+function jarvisWebhookTarget() {
+  if (env.jarvisWebhookUrl) return env.jarvisWebhookUrl;
+  if (env.jarvisPublicUrl && env.jarvisWebhookKey) {
+    return `${env.jarvisPublicUrl.replace(/\/$/, "")}/api/assistant/webhook/${env.jarvisWebhookKey}`;
+  }
+  return void 0;
+}
 
 // api_src/_lib/http.ts
 import { createHash, timingSafeEqual } from "crypto";
@@ -60,41 +67,6 @@ var BodyError = class extends Error {
     this.status = status;
   }
 };
-async function readJson(req) {
-  if (req.body !== void 0 && req.body !== null && req.body !== "") {
-    if (typeof req.body === "object" && !Buffer.isBuffer(req.body)) return req.body;
-    return parseJsonText(Buffer.isBuffer(req.body) ? req.body.toString("utf8") : String(req.body));
-  }
-  const text = await new Promise((resolve, reject) => {
-    let size = 0;
-    const chunks = [];
-    req.on("data", (chunk) => {
-      size += chunk.length;
-      if (size > MAX_BODY_BYTES) {
-        reject(new BodyError(413, "Request body too large."));
-        req.destroy?.();
-        return;
-      }
-      chunks.push(Buffer.from(chunk));
-    });
-    req.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
-    req.on("error", () => reject(new BodyError(400, "Could not read request body.")));
-  });
-  return text ? parseJsonText(text) : {};
-}
-function parseJsonText(text) {
-  if (text.length > MAX_BODY_BYTES) throw new BodyError(413, "Request body too large.");
-  try {
-    const parsed = JSON.parse(text);
-    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-      throw new BodyError(400, "Request body must be a JSON object.");
-    }
-    return parsed;
-  } catch (e) {
-    if (e instanceof BodyError) throw e;
-    throw new BodyError(400, "Request body is not valid JSON.");
-  }
-}
 function safeEqual(expected, provided) {
   const a2 = Buffer.from(expected, "utf8");
   const b2 = Buffer.from(provided, "utf8");
@@ -121,29 +93,6 @@ function authenticate(req) {
   }
   return { ok: false, status: 403, error: "Invalid API key." };
 }
-function requireRole(res, auth, roles) {
-  if (!auth.ok) {
-    if (auth.status === 401) res.setHeader("WWW-Authenticate", "Bearer");
-    sendJson(res, auth.status || 401, { success: false, error: auth.error });
-    return false;
-  }
-  if (!auth.role || !roles.includes(auth.role)) {
-    sendJson(res, 403, { success: false, error: "This key is not allowed to call this endpoint." });
-    return false;
-  }
-  return true;
-}
-function sha256(value) {
-  const text = typeof value === "string" ? value : JSON.stringify(value ?? {});
-  return createHash("sha256").update(text).digest("hex");
-}
-function subpath(req, prefix) {
-  const slug = req.query?.slug;
-  if (Array.isArray(slug)) return slug.join("/");
-  if (typeof slug === "string" && slug) return slug;
-  const pathname = new URL(req.url || "/", "http://localhost").pathname;
-  return pathname.replace(new RegExp(`^${prefix}/?`), "").replace(/\/$/, "");
-}
 function route(handler) {
   return async (req, res) => {
     if (applyCors(req, res)) return;
@@ -155,6 +104,17 @@ function route(handler) {
       if (!res.headersSent) sendJson(res, 500, { success: false, error: "Internal error." });
     }
   };
+}
+
+// api_src/_lib/notify.ts
+function jarvisHostForDisplay() {
+  const url = jarvisWebhookTarget();
+  if (!url) return null;
+  try {
+    return new URL(url).origin;
+  } catch {
+    return "invalid URL";
+  }
 }
 
 // node_modules/@neondatabase/serverless/index.mjs
@@ -5392,247 +5352,6 @@ var export_escapeLiteral = ct.escapeLiteral;
 var export_types = ct.types;
 
 // api_src/_lib/store.ts
-import { createHmac, randomBytes } from "crypto";
-
-// src/data/initialData.ts
-var INITIAL_CV_DATA = {
-  version: "v3.0.0",
-  fullName: "Mohammed Parker",
-  headline: "Software Engineer & Systems Administrator",
-  summary: "Software Engineer and Systems Administrator with strong expertise in full-stack application development, cloud computing (AWS Certified), and enterprise infrastructure management. Proven track record of architecting scalable multi-tenant SaaS platforms, interactive VR applications, and AI-orchestrated tools. Combines hands-on systems reliability, VMware virtualization, and Azure/Active Directory administration with modern web development methodologies to deliver secure, high-availability software solutions.",
-  location: "Cape Town, South Africa 7500",
-  email: "mraaziqp@gmail.com",
-  phone: "+27 83 786 4913",
-  githubUrl: "https://github.com/mraaziqp",
-  linkedinUrl: "https://linkedin.com/in/mohammedparker",
-  websiteUrl: "https://portfolio.arpcloudsolutions.co.za",
-  availability: {
-    openToWork: true,
-    note: "Open to software engineering and infrastructure roles"
-  },
-  experiences: [
-    {
-      id: "exp-bcx",
-      role: "IT Admin",
-      company: "BCX",
-      location: "Cape Town, South Africa",
-      startDate: "10/2024",
-      endDate: null,
-      isCurrent: true,
-      summary: "Managing and coordinating server, virtual machine (VMware/Hyper-V), and Active Directory engineering workflows, consistently meeting strict enterprise Service Level Agreements (SLAs).",
-      keyAchievements: [
-        "Manage and coordinate server, virtual machine (VMware/Hyper-V), and Active Directory engineering workflows, consistently meeting strict enterprise Service Level Agreements (SLAs).",
-        "Direct the Microsoft team\u2019s request and incident queues; triage complex technical escalations, prioritize workload distribution, and exercise autonomous decision-making for task resolution.",
-        "Provision, configure, and maintain physical and virtual enterprise server infrastructure, establishing remote diagnostics and system observability.",
-        "Oversee end-to-end server lifecycle management, including decommissioning protocols, compliance documentation, and audit readiness.",
-        "Serve as the final technical gatekeeper and QA sign-off authority prior to deploying infrastructure changes and client-facing solutions."
-      ],
-      technologies: ["VMware ESXi", "Microsoft Hyper-V", "Active Directory", "Windows Server", "System Observability", "SLA Management", "Microsoft Infrastructure"],
-      enterpriseDomain: "Enterprise Virtualization & Directory Services"
-    },
-    {
-      id: "exp-reddington",
-      role: "IT Technician",
-      company: "Reddington \u2013 Ensure IT Services",
-      location: "Cape Town, South Africa",
-      startDate: "07/2023",
-      endDate: "10/2024",
-      isCurrent: false,
-      summary: "Performed root-cause analysis, hardware diagnostics, and component-level repairs for enterprise laptops, workstations, and printers across enterprise client fleets.",
-      keyAchievements: [
-        "Performed root-cause analysis, hardware diagnostics, and component-level repairs for enterprise laptops, workstations, and printers.",
-        "Managed parts procurement, warranty tracking, and inventory logistics through Microsoft Dynamics.",
-        "Resolved complex networking, operating system, and hardware configuration escalations."
-      ],
-      technologies: ["Hardware Diagnostics", "Component-Level Repair", "Microsoft Dynamics", "Enterprise Networking", "OS Troubleshooting", "Logistics Management"],
-      enterpriseDomain: "Hardware Diagnostics & Systems Reliability"
-    },
-    {
-      id: "exp-fpg",
-      role: "IT Technical Support Intern",
-      company: "FPG Group",
-      location: "Plattekloof, South Africa",
-      startDate: "05/2023",
-      endDate: "09/2023",
-      isCurrent: false,
-      summary: "Administered user identities, access control (RBAC), and security policies in Azure Active Directory (Entra ID) with centralized endpoint deployment.",
-      keyAchievements: [
-        "Administered user identities, access control (RBAC), and security policies in Azure Active Directory (Entra ID).",
-        "Deployed operating system images and configured enterprise software across distributed company workstations using Microsoft Endpoint.",
-        "Participated in cross-functional technical meetings to troubleshoot systemic errors and support IT modernization initiatives."
-      ],
-      technologies: ["Azure Active Directory / Entra ID", "RBAC Policies", "Microsoft Endpoint", "OS Imaging", "Security Policies", "IT Modernization"],
-      enterpriseDomain: "Azure Identity & Endpoint Management"
-    },
-    {
-      id: "exp-construct",
-      role: "L1 Technical Support Engineer",
-      company: "Construct Education",
-      location: "Cape Town, South Africa",
-      startDate: "05/2023",
-      endDate: "08/2023",
-      isCurrent: false,
-      summary: "Delivered remote technical support across 54 KFC branch locations and educational portals, troubleshooting Canvas LMS and mobile app issues.",
-      keyAchievements: [
-        "Delivered remote technical support across 54 KFC branch locations and educational portals, troubleshooting Canvas LMS and mobile app issues.",
-        "Authored accessible technical guides and standard operating procedures (SOPs) to streamline troubleshooting for non-technical users."
-      ],
-      technologies: ["Remote Support", "Canvas LMS", "Mobile Applications", "Technical Writing", "SOP Authoring", "Distributed Branch Support"],
-      enterpriseDomain: "Distributed Branch Support & Educational Platforms"
-    }
-  ],
-  skills: {
-    languages: ["TypeScript", "Python", "C#", "SQL", "Bash / Shell", "PowerShell"],
-    frameworks: ["Next.js", "React", "Node.js", "Tailwind CSS", "Unity (XR)", "Express"],
-    cloudAndDevOps: ["AWS (EC2, S3)", "PostgreSQL", "Firebase", "Supabase", "Docker", "REST APIs"],
-    aiAndArchitecture: ["AI Orchestration", "LLMs (Gemini, Ollama)", "CI/CD", "Microservices", "System Observability"],
-    enterpriseAndIT: ["VMware", "Hyper-V", "Linux", "Windows Server", "Azure AD / Entra ID", "Microsoft Intune"],
-    hardwareAndCreative: ["Unity & C# XR Simulation", "Hardware & Electronics Restoration", "Precision Coffee Extraction", "Artisanal Confectionery"]
-  },
-  certifications: [
-    {
-      id: "cert-aws",
-      name: "AWS Certified Cloud Practitioner",
-      issuer: "Amazon Web Services (AWS)",
-      issueDate: "",
-      badgeUrl: "https://aws.amazon.com/certification/certified-cloud-practitioner/"
-    },
-    {
-      id: "cert-lenovo",
-      name: "Lenovo Certified Technician",
-      issuer: "Lenovo",
-      issueDate: "2023 \u2013 2031"
-    },
-    {
-      id: "cert-dell",
-      name: "DELL Certified Technician",
-      issuer: "DELL Technologies",
-      issueDate: "2023 \u2013 2031"
-    }
-  ],
-  education: [
-    {
-      id: "edu-adv-dip",
-      degree: "Advanced Diploma in ICT: Applications Development",
-      institution: "Cape Peninsula University of Technology (CPUT) \u2014 Cape Town",
-      year: "Graduated 04/2025",
-      details: "Focus: Full-stack application development, software design patterns, advanced SQL, systems analysis, and Agile methodologies."
-    },
-    {
-      id: "edu-nat-dip",
-      degree: "National Diploma in ICT: Applications Development",
-      institution: "Cape Peninsula University of Technology (CPUT) \u2014 Cape Town",
-      year: "01/2023",
-      details: "Comprehensive software engineering, database design, algorithms, and distributed computing."
-    },
-    {
-      id: "edu-higher-cert",
-      degree: "Higher Certificate in ICT",
-      institution: "Cape Peninsula University of Technology (CPUT) \u2014 Cape Town",
-      year: "01/2020",
-      details: "Information and Communication Technology foundational principles, programming fundamentals, and computer hardware."
-    },
-    {
-      id: "edu-matric",
-      degree: "National Senior Certificate / High School Diploma",
-      institution: "Fairbairn College \u2014 Cape Town",
-      year: "01/2019",
-      details: "National Senior Certificate matriculation."
-    }
-  ],
-  rawCvMetadata: {
-    parserSource: "Mohammed_Parker_CV.pdf",
-    parsedAt: "2026-09-25T00:00:00.000Z"
-  }
-};
-var SHOWCASE_PROJECTS = [
-  {
-    id: "proj-emeron",
-    slug: "emeron",
-    title: "Emeron",
-    tagline: "Enterprise recruitment platform",
-    description: "End-to-end talent acquisition platform with automated CV parsing, algorithmic candidate shortlisting and role-based client portals.",
-    role: "Full-Stack Developer",
-    category: "Enterprise SaaS",
-    featured: true,
-    status: "live",
-    technologies: ["Next.js", "TypeScript", "PostgreSQL", "CV parsing", "Role-based access"],
-    metrics: [],
-    liveUrl: "https://emeron.co.za"
-  },
-  {
-    id: "proj-hustle-studio",
-    slug: "hustle-studio",
-    title: "Hustle Studio",
-    tagline: "Multi-tenant business operations & point of sale",
-    description: "Multi-tenant business operations platform with point-of-sale, financial tracking and embedded AI copilots. Implemented tenant data isolation and query optimisation for high-availability operation.",
-    role: "Lead Full-Stack Developer",
-    category: "Enterprise SaaS",
-    featured: true,
-    status: "in-development",
-    technologies: ["Next.js", "TypeScript", "PostgreSQL", "Multi-tenancy", "AI copilots"],
-    metrics: []
-  },
-  {
-    id: "proj-lifestack",
-    slug: "lifestack",
-    title: "LifeStack",
-    tagline: "AI-powered project management & personal assistant",
-    description: "Project management and personal assistant web app with intelligent schedule optimisation, automated activity tracking and REST endpoints for personalised productivity workflows.",
-    role: "Full-Stack Engineer",
-    category: "Productivity",
-    featured: true,
-    status: "in-development",
-    technologies: ["Next.js", "React", "TypeScript", "Tailwind CSS", "REST APIs"],
-    metrics: []
-  },
-  {
-    id: "proj-verifiedbizlink",
-    slug: "verifiedbizlink",
-    title: "VerifiedBizLink & TotalL\u0178",
-    tagline: "B2B verification network & service booking platforms",
-    description: "B2B verification network and multi-tenant service booking platforms with custom admin control centres, document vetting pipelines and secure database schemas.",
-    role: "Full-Stack Developer",
-    category: "B2B Platforms",
-    featured: true,
-    status: "live",
-    technologies: ["Next.js", "TypeScript", "PostgreSQL", "Multi-tenant booking", "Admin tooling"],
-    metrics: [],
-    liveUrl: "https://www.verifiedbizlink.co.za",
-    githubUrl: "https://github.com/mraaziqp/VerifiedBizLink",
-    links: [{ label: "totally.co.za", url: "https://www.totally.co.za" }]
-  },
-  {
-    id: "proj-xpfinance",
-    slug: "xpfinance",
-    title: "XPFinance",
-    tagline: "Personal finance & expense analytics",
-    description: "Personal finance and expense management app with interactive analytics dashboards, transaction categorisation and budget tracking.",
-    role: "Full-Stack Developer",
-    category: "FinTech",
-    featured: true,
-    status: "live",
-    technologies: ["Next.js", "TypeScript", "PostgreSQL", "Data visualisation"],
-    metrics: [],
-    liveUrl: "https://www.xpfinance.co.za"
-  },
-  {
-    id: "proj-vr-phobia",
-    slug: "vr-phobia",
-    title: "VR Phobia Therapy",
-    tagline: "Virtual reality exposure therapy",
-    description: "Immersive VR application for controlled exposure therapy, helping people work through phobias. Designed the spatial interaction mechanics, dynamic environments and real-time behavioural feedback loops.",
-    role: "XR Developer",
-    category: "XR & Simulation",
-    featured: true,
-    status: "in-development",
-    technologies: ["Unity", "C#", "Virtual reality", "3D interaction design"],
-    metrics: []
-  }
-];
-
-// api_src/_lib/store.ts
-var clone = (value) => JSON.parse(JSON.stringify(value));
 var sql = env.databaseUrl ? cs(env.databaseUrl) : null;
 var schemaReady = null;
 function ensureSchema() {
@@ -5693,497 +5412,63 @@ async function db() {
   await ensureSchema();
   return sql;
 }
-var memory = {
-  kv: /* @__PURE__ */ new Map(),
-  inquiries: [],
-  events: [],
-  telemetry: /* @__PURE__ */ new Map()
-};
 var storageMode = () => sql ? "postgres" : "memory";
-async function getKv(key) {
-  if (!sql) return memory.kv.has(key) ? clone(memory.kv.get(key)) : void 0;
-  const rows = await (await db())`SELECT value FROM portfolio_kv WHERE key = ${key}`;
-  return rows[0]?.value;
-}
-async function setKv(key, value) {
-  if (!sql) {
-    memory.kv.set(key, clone(value));
-    return;
-  }
-  await (await db())`
-    INSERT INTO portfolio_kv (key, value, updated_at) VALUES (${key}, ${JSON.stringify(value)}::jsonb, now())
-    ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = now()`;
-}
-async function deleteKv(key) {
-  if (!sql) {
-    memory.kv.delete(key);
-    return;
-  }
-  await (await db())`DELETE FROM portfolio_kv WHERE key = ${key}`;
-}
-async function getProfile() {
-  return await getKv("profile") || clone(INITIAL_CV_DATA);
-}
-async function saveProfile(profile) {
-  await setKv("profile", profile);
-}
-async function resetProfile() {
-  await deleteKv("profile");
-}
-async function getProjects() {
-  return await getKv("projects") || clone(SHOWCASE_PROJECTS);
-}
-var rowToInquiry = (r) => ({
-  id: r.id,
-  createdAt: new Date(r.created_at).toISOString(),
-  name: r.name,
-  email: r.email,
-  organization: r.organization,
-  subject: r.subject,
-  message: r.message,
-  category: r.category,
-  status: r.status,
-  emailDelivered: r.email_delivered,
-  jarvisDelivered: r.jarvis_delivered,
-  receiptId: r.receipt_id
-});
-async function listInquiries(limit = 50) {
-  if (!sql) return memory.inquiries.slice(0, limit).map(({ ipHash, ...i }) => clone(i));
-  const rows = await (await db())`
-    SELECT * FROM portfolio_inquiries ORDER BY created_at DESC LIMIT ${limit}`;
-  return rows.map(rowToInquiry);
-}
-async function setInquiryStatus(id, status) {
-  if (!sql) {
-    const found = memory.inquiries.find((i) => i.id === id);
-    if (!found) return null;
-    found.status = status;
-    const { ipHash, ...rest } = found;
-    return clone(rest);
-  }
-  const rows = await (await db())`
-    UPDATE portfolio_inquiries SET status = ${status} WHERE id = ${id} RETURNING *`;
-  return rows[0] ? rowToInquiry(rows[0]) : null;
-}
-async function inquiryCounts() {
-  if (!sql) {
-    return { total: memory.inquiries.length, open: memory.inquiries.filter((i) => i.status === "new").length };
-  }
-  const rows = await (await db())`
-    SELECT count(*)::int AS total, count(*) FILTER (WHERE status = 'new')::int AS open FROM portfolio_inquiries`;
-  return { total: rows[0]?.total ?? 0, open: rows[0]?.open ?? 0 };
-}
-function signingKey() {
-  return env.jarvisApiKey || "";
-}
-async function recordEvent(params) {
-  const now = /* @__PURE__ */ new Date();
-  const receiptId = `rcpt_${now.getTime()}_${randomBytes(3).toString("hex")}`;
-  const payloadDigest = `sha256:${sha256(params.payload ?? {})}`;
-  const key = signingKey();
-  const receiptSignature = key ? `hmac-sha256:${createHmac("sha256", key).update(`${receiptId}|${now.toISOString()}|${params.actionType}|${params.status}|${payloadDigest}`).digest("hex")}` : "unsigned";
-  const event = {
-    receiptId,
-    timestamp: now.toISOString(),
-    actionType: params.actionType,
-    caller: params.caller.slice(0, 200),
-    status: params.status,
-    statusCode: params.statusCode,
-    latencyMs: Math.max(1, Math.round(performance.now() - params.startedAt)),
-    payloadDigest,
-    receiptSignature,
-    summary: params.summary.slice(0, 500),
-    details: params.details ?? null
-  };
+async function pingStorage() {
+  const start = Date.now();
+  if (!sql) return { ok: true, latencyMs: 0 };
   try {
-    if (!sql) {
-      memory.events.unshift(event);
-      memory.events.length = Math.min(memory.events.length, 200);
-    } else {
-      const q = await db();
-      await q`
-        INSERT INTO portfolio_events (receipt_id, created_at, action_type, caller, status, status_code, latency_ms,
-                                      payload_digest, signature, summary, details)
-        VALUES (${event.receiptId}, ${event.timestamp}, ${event.actionType}, ${event.caller}, ${event.status},
-                ${event.statusCode}, ${event.latencyMs}, ${event.payloadDigest}, ${event.receiptSignature},
-                ${event.summary}, ${event.details ? JSON.stringify(event.details) : null}::jsonb)`;
-      if (Math.random() < 0.02) {
-        await q`DELETE FROM portfolio_events WHERE created_at < now() - interval '180 days'`;
-      }
-    }
+    await db();
+    await sql`SELECT 1`;
+    return { ok: true, latencyMs: Date.now() - start };
   } catch (e) {
-    console.error("[audit] could not record event", e);
+    return { ok: false, latencyMs: Date.now() - start, error: e?.message || "unreachable" };
   }
-  return event;
-}
-async function listEvents(limit = 30) {
-  if (!sql) return clone(memory.events.slice(0, limit));
-  const rows = await (await db())`
-    SELECT * FROM portfolio_events ORDER BY created_at DESC LIMIT ${limit}`;
-  return rows.map((r) => ({
-    receiptId: r.receipt_id,
-    timestamp: new Date(r.created_at).toISOString(),
-    actionType: r.action_type,
-    caller: r.caller,
-    status: r.status,
-    statusCode: r.status_code,
-    latencyMs: r.latency_ms,
-    payloadDigest: r.payload_digest,
-    receiptSignature: r.signature,
-    summary: r.summary,
-    details: r.details
-  }));
-}
-async function getTelemetry() {
-  const rows = !sql ? [...memory.telemetry.entries()].map(([k, count]) => {
-    const [slug, event] = k.split("|");
-    return { slug, event, count };
-  }) : await (await db())`SELECT slug, event, count::int AS count FROM portfolio_telemetry`;
-  const summary = { totalViews: 0, projects: {} };
-  for (const row of rows) {
-    if (row.slug === "site") {
-      if (row.event === "view") summary.totalViews = Number(row.count);
-      continue;
-    }
-    const entry = summary.projects[row.slug] ||= { views: 0, clicks: 0 };
-    if (row.event === "view") entry.views = Number(row.count);
-    if (row.event === "click") entry.clicks = Number(row.count);
-  }
-  return summary;
 }
 
-// api_src/_lib/validate.ts
-var ValidationError = class extends Error {
-};
-var fail = (msg) => {
-  throw new ValidationError(msg);
-};
-function str(value, field, max, required = true) {
-  if (value === void 0 || value === null || value === "") {
-    if (required) fail(`${field} is required.`);
-    return void 0;
-  }
-  if (typeof value !== "string") fail(`${field} must be a string.`);
-  const trimmed = value.trim();
-  if (required && !trimmed) fail(`${field} is required.`);
-  if (trimmed.length > max) fail(`${field} must be at most ${max} characters.`);
-  return trimmed;
-}
-function strList(value, field, maxItems, maxLen) {
-  if (!Array.isArray(value)) fail(`${field} must be an array of strings.`);
-  const list = value;
-  if (list.length > maxItems) fail(`${field} may contain at most ${maxItems} items.`);
-  return list.map((v2, i) => str(v2, `${field}[${i}]`, maxLen));
-}
-function url(value, field) {
-  const s = str(value, field, 500, false);
-  if (s && !/^https?:\/\//i.test(s)) fail(`${field} must be an http(s) URL.`);
-  return s;
-}
-var SKILL_CATEGORIES = [
-  "languages",
-  "frameworks",
-  "cloudAndDevOps",
-  "aiAndArchitecture",
-  "enterpriseAndIT",
-  "hardwareAndCreative"
-];
-function experience(value, i) {
-  const f = `experiences[${i}]`;
-  if (!value || typeof value !== "object") fail(`${f} must be an object.`);
-  return {
-    id: str(value.id, `${f}.id`, 80),
-    role: str(value.role, `${f}.role`, 160),
-    company: str(value.company, `${f}.company`, 160),
-    location: str(value.location, `${f}.location`, 160, false) || "",
-    startDate: str(value.startDate, `${f}.startDate`, 20),
-    endDate: str(value.endDate, `${f}.endDate`, 20, false) || null,
-    isCurrent: Boolean(value.isCurrent),
-    summary: str(value.summary, `${f}.summary`, 1500, false) || "",
-    keyAchievements: value.keyAchievements ? strList(value.keyAchievements, `${f}.keyAchievements`, 20, 600) : [],
-    technologies: value.technologies ? strList(value.technologies, `${f}.technologies`, 30, 80) : [],
-    enterpriseDomain: str(value.enterpriseDomain, `${f}.enterpriseDomain`, 160, false)
-  };
-}
-function certification(value, i) {
-  const f = `certifications[${i}]`;
-  if (!value || typeof value !== "object") fail(`${f} must be an object.`);
-  return {
-    id: str(value.id, `${f}.id`, 80),
-    name: str(value.name, `${f}.name`, 200),
-    issuer: str(value.issuer, `${f}.issuer`, 200),
-    issueDate: str(value.issueDate, `${f}.issueDate`, 60, false) || "",
-    expiryDate: str(value.expiryDate, `${f}.expiryDate`, 60, false),
-    credentialId: str(value.credentialId, `${f}.credentialId`, 120, false),
-    badgeUrl: url(value.badgeUrl, `${f}.badgeUrl`)
-  };
-}
-function education(value, i) {
-  const f = `education[${i}]`;
-  if (!value || typeof value !== "object") fail(`${f} must be an object.`);
-  return {
-    id: str(value.id, `${f}.id`, 80),
-    degree: str(value.degree, `${f}.degree`, 200),
-    institution: str(value.institution, `${f}.institution`, 200),
-    year: str(value.year, `${f}.year`, 60, false) || "",
-    details: str(value.details, `${f}.details`, 800, false)
-  };
-}
-function skills(value, current) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) fail("skills must be an object of string arrays.");
-  const next = { ...current };
-  for (const key of Object.keys(value)) {
-    if (!SKILL_CATEGORIES.includes(key)) {
-      fail(`skills.${key} is not a known category (${SKILL_CATEGORIES.join(", ")}).`);
-    }
-    next[key] = strList(value[key], `skills.${key}`, 40, 80);
-  }
-  return next;
-}
-function mergeCvPayload(current, input) {
-  const next = JSON.parse(JSON.stringify(current));
-  if ("fullName" in input) next.fullName = str(input.fullName, "fullName", 120);
-  if ("headline" in input) next.headline = str(input.headline, "headline", 200);
-  if ("summary" in input) next.summary = str(input.summary, "summary", 3e3);
-  if ("location" in input) next.location = str(input.location, "location", 160);
-  if ("email" in input) {
-    const email = str(input.email, "email", 200);
-    if (!EMAIL_RE.test(email)) fail("email is not a valid address.");
-    next.email = email;
-  }
-  if ("phone" in input) next.phone = str(input.phone, "phone", 40, false);
-  if ("githubUrl" in input) next.githubUrl = url(input.githubUrl, "githubUrl");
-  if ("linkedinUrl" in input) next.linkedinUrl = url(input.linkedinUrl, "linkedinUrl");
-  if ("websiteUrl" in input) next.websiteUrl = url(input.websiteUrl, "websiteUrl");
-  if ("experiences" in input) {
-    if (!Array.isArray(input.experiences) || input.experiences.length > 30) {
-      fail("experiences must be an array of at most 30 items.");
-    }
-    next.experiences = input.experiences.map(experience);
-  }
-  if ("certifications" in input) {
-    if (!Array.isArray(input.certifications) || input.certifications.length > 30) {
-      fail("certifications must be an array of at most 30 items.");
-    }
-    next.certifications = input.certifications.map(certification);
-  }
-  if ("education" in input) {
-    if (!Array.isArray(input.education) || input.education.length > 20) {
-      fail("education must be an array of at most 20 items.");
-    }
-    next.education = input.education.map(education);
-  }
-  if ("skills" in input) next.skills = skills(input.skills, next.skills);
-  if ("availability" in input) {
-    const a2 = input.availability;
-    if (!a2 || typeof a2 !== "object") fail("availability must be an object.");
-    next.availability = {
-      openToWork: Boolean(a2.openToWork),
-      note: str(a2.note, "availability.note", 160, false)
-    };
-  }
-  if ("version" in input) next.version = str(input.version, "version", 40);
-  return next;
-}
-var EMAIL_RE = /^[^\s@<>()[\],;:"]+@[^\s@<>()[\],;:"]+\.[a-z]{2,}$/i;
-
-// api_src/jarvis/[...slug].ts
-var ACTIONS = [
-  { action: "update_headline", description: "Set the headline shown under the name.", params: { headline: "string" } },
-  { action: "update_summary", description: "Replace the professional summary.", params: { summary: "string" } },
-  {
-    action: "set_availability",
-    description: 'Show or hide the "open to opportunities" badge.',
-    params: { openToWork: "boolean", note: "string (optional)" }
-  },
-  { action: "add_skill", description: "Add a skill to a category.", params: { category: SKILL_CATEGORIES.join("|"), skill: "string" } },
-  { action: "remove_skill", description: "Remove a skill from a category.", params: { category: SKILL_CATEGORIES.join("|"), skill: "string" } },
-  {
-    action: "update_experience",
-    description: "Edit one role on the timeline.",
-    params: { experienceId: "string", role: "string?", summary: "string?", keyAchievements: "string[]?", technologies: "string[]?" }
-  },
-  { action: "update_profile", description: "Apply a partial CV update (same shape as POST /api/sync-cv).", params: { "...": "CV fields" } },
-  { action: "reset_profile", description: "Discard all stored edits and serve the CV bundled with the site.", params: {} },
-  { action: "mark_inquiry", description: "Triage a contact enquiry.", params: { inquiryId: "string", status: "new|read|archived" } },
-  { action: "test_probe", description: "Round-trip check; changes nothing.", params: { "...": "anything" } }
-];
-async function snapshot() {
-  const [profile, projects, telemetry, inquiries, counts, receipts] = await Promise.all([
-    getProfile(),
-    getProjects(),
-    getTelemetry(),
-    listInquiries(50),
-    inquiryCounts(),
-    listEvents(15)
-  ]);
-  return { profile, projects, telemetry, inquiries, inquiryCounts: counts, recentReceipts: receipts };
-}
-async function runAction(action, params) {
-  const profile = await getProfile();
-  const save = async (patch) => {
-    const next = mergeCvPayload(profile, patch);
-    await saveProfile(next);
-    return next;
-  };
-  switch (action) {
-    case "update_headline":
-      return { headline: (await save({ headline: params.headline })).headline };
-    case "update_summary":
-      return { summary: (await save({ summary: params.summary })).summary };
-    case "set_availability":
-      return { availability: (await save({ availability: params })).availability };
-    case "add_skill":
-    case "remove_skill": {
-      const category = params.category;
-      const skill = typeof params.skill === "string" ? params.skill.trim() : "";
-      if (!SKILL_CATEGORIES.includes(category)) throw new ValidationError(`category must be one of ${SKILL_CATEGORIES.join(", ")}.`);
-      if (!skill) throw new ValidationError("skill is required.");
-      const list = profile.skills[category] || [];
-      const updated = action === "add_skill" ? list.includes(skill) ? list : [...list, skill] : list.filter((s) => s.toLowerCase() !== skill.toLowerCase());
-      const next = await save({ skills: { [category]: updated } });
-      return { category, skills: next.skills[category] };
-    }
-    case "update_experience": {
-      const index = profile.experiences.findIndex((e) => e.id === params.experienceId);
-      if (index < 0) {
-        throw new ValidationError(`No experience with id "${params.experienceId}". Ids: ${profile.experiences.map((e) => e.id).join(", ")}.`);
-      }
-      const experiences = profile.experiences.map((e, i) => {
-        if (i !== index) return e;
-        const edit = {};
-        for (const key of ["role", "summary", "keyAchievements", "technologies", "endDate", "isCurrent"]) {
-          if (key in params) edit[key] = params[key];
-        }
-        return { ...e, ...edit };
-      });
-      const next = await save({ experiences });
-      return { experience: next.experiences[index] };
-    }
-    case "update_profile": {
-      const next = await save(params);
-      return { version: next.version, updatedFields: Object.keys(params) };
-    }
-    case "reset_profile":
-      await resetProfile();
-      return { reset: true, version: (await getProfile()).version };
-    case "mark_inquiry": {
-      const status = params.status || "read";
-      if (!["new", "read", "archived"].includes(status)) throw new ValidationError("status must be new, read or archived.");
-      const inquiry = await setInquiryStatus(String(params.inquiryId || ""), status);
-      if (!inquiry) throw new ValidationError(`No enquiry with id "${params.inquiryId}".`);
-      return { inquiryId: inquiry.id, status: inquiry.status };
-    }
-    case "test_probe":
-      return { pong: true, receivedParams: params, serverTime: (/* @__PURE__ */ new Date()).toISOString() };
-    default:
-      return void 0;
-  }
-}
-var slug_default = route(async (req, res) => {
-  const path = subpath(req, "/api/jarvis");
-  const startedAt = performance.now();
-  if (!path || path === "ping") {
-    return sendJson(res, 200, {
-      status: "ok",
-      app: "myportfolio",
-      name: "Mohammed Parker \u2014 Portfolio",
-      url: env.siteUrl,
-      time: (/* @__PURE__ */ new Date()).toISOString()
+// api_src/health.ts
+async function resendStatus() {
+  if (!env.resendApiKey) return { configured: false };
+  const from = env.resendFrom;
+  const fromDomain = /@([^>\s]+)/.exec(from)?.[1] ?? null;
+  try {
+    const res = await fetch("https://api.resend.com/domains", {
+      headers: { Authorization: `Bearer ${env.resendApiKey}` },
+      signal: AbortSignal.timeout(4e3)
     });
+    if (!res.ok) return { configured: true, from, fromDomain, domains: `unavailable (${res.status}; sending-only key?)` };
+    const data = await res.json();
+    const domains = (data?.data || []).map((d2) => ({ name: d2.name, status: d2.status }));
+    const verified = fromDomain === "resend.dev" || domains.some((d2) => d2.name === fromDomain && d2.status === "verified");
+    return { configured: true, from, fromDomain, fromDomainVerified: verified, domains };
+  } catch (e) {
+    return { configured: true, from, fromDomain, domains: `error: ${e?.message}` };
   }
+}
+var health_default = route(async (req, res) => {
+  if (req.method !== "GET") return methodNotAllowed(res, ["GET"]);
   const auth = authenticate(req);
-  if (!requireRole(res, auth, ["jarvis_master"])) return;
-  if (path === "schema") {
-    const base = env.siteUrl;
-    return sendJson(res, 200, {
-      schemaVersion: "3.0.0",
-      app: "myportfolio",
-      description: "Public online CV of Mohammed Parker. Jarvis can read everything and edit the live CV.",
-      auth: 'Send the key as "Authorization: Bearer <key>" or "x-jarvis-key: <key>".',
-      endpoints: [
-        { method: "GET", path: "/api/jarvis/ping", description: "Connectivity check (no key)." },
-        { method: "GET", path: "/api/jarvis/schema", description: "This document." },
-        { method: "GET", path: "/api/jarvis/state", description: "CV, projects, telemetry, enquiries and recent receipts." },
-        { method: "POST", path: "/api/jarvis/action", description: "Body { action, params }. See actions." },
-        { method: "GET", path: "/api/jarvis/events", description: "Audit receipts, newest first. ?limit=1..100" },
-        { method: "GET", path: "/api/contact", description: "Contact enquiries." },
-        { method: "GET|POST", path: "/api/sync-cv", description: "Read CV version / push a partial CV." },
-        { method: "GET", path: "/api/telemetry", description: "View and click counters." },
-        { method: "GET", path: "/api/dashboard/portal", description: "Dashboard manifest for the ecosystem hub." },
-        { method: "GET", path: "/api/health", description: "Integration status (details with a key)." }
-      ].map((e) => ({ ...e, url: `${base}${e.path}` })),
-      actions: ACTIONS,
-      storage: storageMode()
-    });
+  if (!auth.ok || auth.role !== "jarvis_master") {
+    return sendJson(res, 200, { status: "ok", time: (/* @__PURE__ */ new Date()).toISOString() });
   }
-  if (path === "state") {
-    return sendJson(res, 200, { success: true, snapshotAt: (/* @__PURE__ */ new Date()).toISOString(), ...await snapshot() });
+  const [storage, email] = await Promise.all([pingStorage(), resendStatus()]);
+  let dbHost = null;
+  try {
+    dbHost = env.databaseUrl ? new URL(env.databaseUrl).hostname : null;
+  } catch {
+    dbHost = "unparseable";
   }
-  if (path === "events") {
-    const limit = Math.min(100, Math.max(1, Number(new URL(req.url, "http://x").searchParams.get("limit")) || 30));
-    const events = await listEvents(limit);
-    return sendJson(res, 200, { success: true, total: events.length, events });
-  }
-  if (path === "action") {
-    if (req.method !== "POST") return methodNotAllowed(res, ["POST"]);
-    const body = await readJson(req);
-    const action = String(body.action || "");
-    const params = body.params && typeof body.params === "object" ? body.params : {};
-    let result;
-    try {
-      result = await runAction(action, params);
-    } catch (e) {
-      if (e instanceof ValidationError) {
-        await recordEvent({
-          actionType: "JARVIS_ACTION",
-          caller: auth.clientId,
-          status: "FAILED",
-          statusCode: 400,
-          startedAt,
-          summary: `Action "${action}" rejected: ${e.message}`,
-          payload: { action, params }
-        });
-        return sendJson(res, 400, { success: false, action, error: e.message });
-      }
-      throw e;
-    }
-    if (result === void 0) {
-      return sendJson(res, 400, {
-        success: false,
-        error: `Unknown action "${action}".`,
-        availableActions: ACTIONS.map((a2) => a2.action)
-      });
-    }
-    const receipt = await recordEvent({
-      actionType: "JARVIS_ACTION",
-      caller: auth.clientId,
-      status: "SUCCESS",
-      statusCode: 200,
-      startedAt,
-      summary: `Executed "${action}".`,
-      payload: { action, params }
-    });
-    return sendJson(res, 200, {
-      success: true,
-      action,
-      result,
-      receipt: {
-        receiptId: receipt.receiptId,
-        timestamp: receipt.timestamp,
-        payloadDigest: receipt.payloadDigest,
-        receiptSignature: receipt.receiptSignature
-      }
-    });
-  }
-  return sendJson(res, 404, {
-    success: false,
-    error: `Unknown Jarvis endpoint "${path}".`,
-    available: ["ping", "schema", "state", "action", "events"]
+  return sendJson(res, 200, {
+    status: storage.ok ? "ok" : "degraded",
+    time: (/* @__PURE__ */ new Date()).toISOString(),
+    environment: process.env.VERCEL_ENV || "local",
+    storage: { mode: storageMode(), host: dbHost, ...storage },
+    email: { ...email, notifyTo: env.notifyEmail ? "NOTIFY_EMAIL" : "CV email (NOTIFY_EMAIL unset)" },
+    jarvisWebhook: { configured: Boolean(jarvisHostForDisplay()), host: jarvisHostForDisplay() },
+    keys: { jarvis: Boolean(env.jarvisApiKey), portfolio: Boolean(env.portfolioApiKey) }
   });
 });
 export {
-  slug_default as default
+  health_default as default
 };
 /*! Bundled license information:
 

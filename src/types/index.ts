@@ -54,6 +54,10 @@ export interface CvSyncPayload {
   skills: SkillCategoryMap;
   certifications: CertificationItem[];
   education: EducationItem[];
+  availability?: {
+    openToWork: boolean;
+    note?: string;
+  };
   rawCvMetadata?: {
     parserSource: string;
     confidenceScore?: number;
@@ -72,13 +76,14 @@ export interface ProjectShowcaseItem {
   category: string;
   featured: boolean;
   technologies: string[];
+  status?: 'live' | 'in-development' | 'private';
   metrics: {
     label: string;
     value: string;
   }[];
   liveUrl?: string;
   githubUrl?: string;
-  syncSource?: boolean; // Indicates if this is the Emeron platform connected via API
+  links?: { label: string; url: string }[];
 }
 
 export interface ContactSubmissionPayload {
@@ -87,7 +92,9 @@ export interface ContactSubmissionPayload {
   organization?: string;
   subject: string;
   message: string;
-  category?: 'recruiting' | 'consulting' | 'enterprise_it' | 'ai_dev' | 'general';
+  category?: 'recruiting' | 'engineering' | 'infrastructure' | 'consulting' | 'general';
+  /** Honeypot; must stay empty. */
+  website?: string;
 }
 
 export interface TelemetryExportResponse {

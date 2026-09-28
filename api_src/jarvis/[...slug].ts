@@ -1,361 +1,239 @@
+/**
+ * Jarvis assistant API.
+ *
+ *   GET  /api/jarvis/ping    connectivity check (public, reveals nothing)
+ *   GET  /api/jarvis/schema  what Jarvis can read and do (key)
+ *   GET  /api/jarvis/state   full snapshot: CV, projects, telemetry, inbox, recent receipts (key)
+ *   POST /api/jarvis/action  run one action: { action, params } (key)
+ *   GET  /api/jarvis/events  audit receipts, newest first (key)
+ *
+ * Every write goes through the same validation as /api/sync-cv and is stored,
+ * so a change Jarvis makes is what visitors see on the next load.
+ */
+import { env } from '../_lib/env';
+import { authenticate, methodNotAllowed, readJson, requireRole, route, sendJson, subpath } from '../_lib/http';
 import {
-  handleCors,
-  sendJson,
-  parseBody,
-  checkAuth,
-  recordServerReceipt,
-  sharedCvState,
-  sharedTelemetryState,
-  sharedInquiries,
-  sharedAuditReceipts,
-} from '../_utils';
-import { SHOWCASE_PROJECTS } from '../../src/data/initialData';
+  getProfile,
+  getProjects,
+  getTelemetry,
+  inquiryCounts,
+  listEvents,
+  listInquiries,
+  recordEvent,
+  resetProfile,
+  saveProfile,
+  setInquiryStatus,
+  storageMode,
+} from '../_lib/store';
+import { SKILL_CATEGORIES, ValidationError, mergeCvPayload } from '../_lib/validate';
 
-async function handlePing(req: any, res: any, start: number, auth: any, origin: string) {
-  const receipt = recordServerReceipt({
-    actionType: 'FLEET_PROBE',
-    caller: auth.isValid ? auth.clientId || 'Jarvis' : 'PublicHealthProbe',
-    status: 'SUCCESS',
-    statusCode: 200,
-    latencyMs: performance.now() - start,
-    summary: 'Jarvis diagnostic health probe acknowledged.',
-    payload: { path: '/api/jarvis/ping', method: req.method },
-  });
+const ACTIONS = [
+  { action: 'update_headline', description: 'Set the headline shown under the name.', params: { headline: 'string' } },
+  { action: 'update_summary', description: 'Replace the professional summary.', params: { summary: 'string' } },
+  {
+    action: 'set_availability',
+    description: 'Show or hide the "open to opportunities" badge.',
+    params: { openToWork: 'boolean', note: 'string (optional)' },
+  },
+  { action: 'add_skill', description: 'Add a skill to a category.', params: { category: SKILL_CATEGORIES.join('|'), skill: 'string' } },
+  { action: 'remove_skill', description: 'Remove a skill from a category.', params: { category: SKILL_CATEGORIES.join('|'), skill: 'string' } },
+  {
+    action: 'update_experience',
+    description: 'Edit one role on the timeline.',
+    params: { experienceId: 'string', role: 'string?', summary: 'string?', keyAchievements: 'string[]?', technologies: 'string[]?' },
+  },
+  { action: 'update_profile', description: 'Apply a partial CV update (same shape as POST /api/sync-cv).', params: { '...': 'CV fields' } },
+  { action: 'reset_profile', description: 'Discard all stored edits and serve the CV bundled with the site.', params: {} },
+  { action: 'mark_inquiry', description: 'Triage a contact enquiry.', params: { inquiryId: 'string', status: 'new|read|archived' } },
+  { action: 'test_probe', description: 'Round-trip check; changes nothing.', params: { '...': 'anything' } },
+];
 
-  return sendJson(res, 200, {
-    status: 'ok',
-    connected: true,
-    caller: auth.isValid ? auth.role : 'unauthenticated',
-    app: {
-      name: 'Mohamed Raaziq Parker Portfolio & Ecosystem Hub',
-      slug: 'myportfolio',
-      origin,
-      subdomain: 'portfolio.arpcloudsolutions.co.za',
-      version: 'v2.5.0',
-    },
-    jarvis: {
-      enabled: true,
-      masterKeyPrefix: 'jrv_mp_',
-      lastSeenAt: Date.now(),
-      webhookConfigured: true,
-    },
-    endpoints: {
-      ping: `${origin}/api/jarvis/ping`,
-      schema: `${origin}/api/jarvis/schema`,
-      state: `${origin}/api/jarvis/state`,
-      action: `${origin}/api/jarvis/action`,
-      events: `${origin}/api/jarvis/events`,
-      portal: `${origin}/api/dashboard/portal`,
-      export: `${origin}/api/dashboard/export`,
-      ingest: `${origin}/api/dashboard/ingest`,
-      manager: `${origin}/api/dashboard/manager`,
-      bridge: `${origin}/api/agent-builder/bridge`,
-    },
-    receiptId: receipt.receiptId,
-    timestamp: new Date().toISOString(),
-  });
+async function snapshot() {
+  const [profile, projects, telemetry, inquiries, counts, receipts] = await Promise.all([
+    getProfile(),
+    getProjects(),
+    getTelemetry(),
+    listInquiries(50),
+    inquiryCounts(),
+    listEvents(15),
+  ]);
+  return { profile, projects, telemetry, inquiries, inquiryCounts: counts, recentReceipts: receipts };
 }
 
-async function handleSchema(req: any, res: any, start: number, auth: any) {
-  if (!auth.isValid) {
-    return sendJson(res, auth.statusCode || 401, {
-      success: false,
-      error: auth.error,
-    });
-  }
-
-  recordServerReceipt({
-    actionType: 'JARVIS_ACTION',
-    caller: auth.clientId || 'Jarvis',
-    status: 'SUCCESS',
-    statusCode: 200,
-    latencyMs: performance.now() - start,
-    summary: 'Jarvis retrieved autonomous schema definitions.',
-  });
-
-  return sendJson(res, 200, {
-    schemaVersion: '2.5.0',
-    app: 'MyPortfolio',
-    entities: {
-      profile: {
-        description: 'Mohamed Raaziq Parker personal brand, headline, bio, contact details',
-        fields: ['fullName', 'headline', 'summary', 'location', 'email', 'phone', 'githubUrl', 'linkedinUrl', 'websiteUrl'],
-      },
-      experiences: {
-        description: 'Professional career timeline and enterprise infrastructure roles',
-        fields: ['id', 'role', 'company', 'location', 'startDate', 'endDate', 'isCurrent', 'summary', 'keyAchievements', 'technologies', 'enterpriseDomain'],
-      },
-      skills: {
-        description: 'Enterprise IT, Cloud, DevOps, Full-Stack, and Creative capability matrix',
-        categories: ['languages', 'frameworks', 'cloudAndDevOps', 'enterpriseAndIT', 'hardwareAndCreative'],
-      },
-      projects: {
-        description: 'Showcase projects (Emeron, LifeStack, Hustle Studio, etc.)',
-        fields: ['id', 'slug', 'title', 'tagline', 'description', 'role', 'category', 'featured', 'technologies', 'metrics'],
-      },
-      inquiries: {
-        description: 'Recruiter and collaboration inbound inquiries',
-        fields: ['id', 'name', 'email', 'organization', 'subject', 'message', 'category', 'status', 'createdAt'],
-      },
-      receipts: {
-        description: 'Cryptographic audit receipts with SHA-256 digests',
-        fields: ['receiptId', 'timestamp', 'actionType', 'caller', 'status', 'latencyMs', 'payloadDigest', 'receiptSignature'],
-      },
-    },
-    allowableActions: [
-      {
-        action: 'update_headline',
-        description: 'Updates Mohamed Raaziq Parker headline and role title in live profile',
-        params: { headline: 'string (required)' },
-      },
-      {
-        action: 'update_summary',
-        description: 'Updates executive profile summary bio',
-        params: { summary: 'string (required)' },
-      },
-      {
-        action: 'add_skill',
-        description: 'Adds a skill to an enterprise category',
-        params: { category: 'languages|frameworks|cloudAndDevOps|enterpriseAndIT|hardwareAndCreative', skill: 'string' },
-      },
-      {
-        action: 'update_experience_role',
-        description: 'Updates a specific experience role title or key achievements',
-        params: { experienceId: 'string', role: 'string (optional)', summary: 'string (optional)' },
-      },
-      {
-        action: 'sync_cv',
-        description: 'Triggers cache re-sync from Emeron CV parsing platform',
-        params: { force: 'boolean (optional)' },
-      },
-      {
-        action: 'mark_inquiry_read',
-        description: 'Marks a recruiter inquiry as triaged or read',
-        params: { inquiryId: 'string' },
-      },
-      {
-        action: 'export_dashboard_snapshot',
-        description: 'Generates full snapshot export for Jarvis Dashboard Manager',
-        params: { includeReceipts: 'boolean (optional)' },
-      },
-    ],
-  });
-}
-
-async function handleState(req: any, res: any, start: number, auth: any) {
-  if (!auth.isValid) {
-    return sendJson(res, auth.statusCode || 401, {
-      success: false,
-      error: auth.error,
-    });
-  }
-
-  const receipt = recordServerReceipt({
-    actionType: 'JARVIS_ACTION',
-    caller: auth.clientId || 'Jarvis',
-    status: 'SUCCESS',
-    statusCode: 200,
-    latencyMs: performance.now() - start,
-    summary: 'Jarvis retrieved live portfolio snapshot and telemetry state.',
-  });
-
-  return sendJson(res, 200, {
-    success: true,
-    snapshotTimestamp: new Date().toISOString(),
-    receiptId: receipt.receiptId,
-    profile: {
-      fullName: sharedCvState.fullName,
-      headline: sharedCvState.headline,
-      summary: sharedCvState.summary,
-      location: sharedCvState.location,
-      email: sharedCvState.email,
-      phone: sharedCvState.phone,
-      version: sharedCvState.version,
-      rawCvMetadata: sharedCvState.rawCvMetadata,
-    },
-    experiences: sharedCvState.experiences,
-    skills: sharedCvState.skills,
-    certifications: sharedCvState.certifications,
-    education: sharedCvState.education,
-    projects: SHOWCASE_PROJECTS,
-    telemetry: sharedTelemetryState,
-    inquiries: sharedInquiries,
-    recentReceipts: sharedAuditReceipts.slice(0, 15),
-  });
-}
-
-async function handleAction(req: any, res: any, start: number, auth: any) {
-  if (!auth.isValid) {
-    return sendJson(res, auth.statusCode || 401, {
-      success: false,
-      error: auth.error,
-    });
-  }
-
-  if (req.method !== 'POST') {
-    return sendJson(res, 405, { success: false, error: 'Method Not Allowed. Use POST.' });
-  }
-
-  const body = await parseBody(req);
-  const action = body.action;
-  const params = body.params || {};
-
-  if (!action) {
-    return sendJson(res, 400, { success: false, error: 'Missing "action" parameter in request body.' });
-  }
-
-  let actionResult: any = null;
+async function runAction(action: string, params: Record<string, any>) {
+  const profile = await getProfile();
+  const save = async (patch: Record<string, unknown>) => {
+    const next = mergeCvPayload(profile, patch);
+    await saveProfile(next);
+    return next;
+  };
 
   switch (action) {
-    case 'update_headline': {
-      if (!params.headline) {
-        return sendJson(res, 400, { success: false, error: 'Missing params.headline' });
+    case 'update_headline':
+      return { headline: (await save({ headline: params.headline })).headline };
+    case 'update_summary':
+      return { summary: (await save({ summary: params.summary })).summary };
+    case 'set_availability':
+      return { availability: (await save({ availability: params })).availability };
+    case 'add_skill':
+    case 'remove_skill': {
+      const category = params.category as (typeof SKILL_CATEGORIES)[number];
+      const skill = typeof params.skill === 'string' ? params.skill.trim() : '';
+      if (!SKILL_CATEGORIES.includes(category)) throw new ValidationError(`category must be one of ${SKILL_CATEGORIES.join(', ')}.`);
+      if (!skill) throw new ValidationError('skill is required.');
+      const list = profile.skills[category] || [];
+      const updated =
+        action === 'add_skill'
+          ? list.includes(skill) ? list : [...list, skill]
+          : list.filter((s) => s.toLowerCase() !== skill.toLowerCase());
+      const next = await save({ skills: { [category]: updated } });
+      return { category, skills: next.skills[category] };
+    }
+    case 'update_experience': {
+      const index = profile.experiences.findIndex((e) => e.id === params.experienceId);
+      if (index < 0) {
+        throw new ValidationError(`No experience with id "${params.experienceId}". Ids: ${profile.experiences.map((e) => e.id).join(', ')}.`);
       }
-      sharedCvState.headline = params.headline;
-      actionResult = { updatedHeadline: sharedCvState.headline };
-      break;
+      const experiences = profile.experiences.map((e, i) => {
+        if (i !== index) return e;
+        const edit: Record<string, unknown> = {};
+        for (const key of ['role', 'summary', 'keyAchievements', 'technologies', 'endDate', 'isCurrent'] as const) {
+          if (key in params) edit[key] = params[key];
+        }
+        return { ...e, ...edit };
+      });
+      const next = await save({ experiences });
+      return { experience: next.experiences[index] };
     }
-
-    case 'update_summary': {
-      if (!params.summary) {
-        return sendJson(res, 400, { success: false, error: 'Missing params.summary' });
-      }
-      sharedCvState.summary = params.summary;
-      actionResult = { updatedSummary: sharedCvState.summary };
-      break;
+    case 'update_profile': {
+      const next = await save(params);
+      return { version: next.version, updatedFields: Object.keys(params) };
     }
-
-    case 'add_skill': {
-      const category = params.category as keyof typeof sharedCvState.skills;
-      const skill = params.skill;
-      if (!category || !skill || !sharedCvState.skills[category]) {
-        return sendJson(res, 400, { success: false, error: 'Invalid skill category or skill name' });
-      }
-      if (!sharedCvState.skills[category].includes(skill)) {
-        sharedCvState.skills[category].push(skill);
-      }
-      actionResult = { category, skills: sharedCvState.skills[category] };
-      break;
+    case 'reset_profile':
+      await resetProfile();
+      return { reset: true, version: (await getProfile()).version };
+    case 'mark_inquiry': {
+      const status = params.status || 'read';
+      if (!['new', 'read', 'archived'].includes(status)) throw new ValidationError('status must be new, read or archived.');
+      const inquiry = await setInquiryStatus(String(params.inquiryId || ''), status);
+      if (!inquiry) throw new ValidationError(`No enquiry with id "${params.inquiryId}".`);
+      return { inquiryId: inquiry.id, status: inquiry.status };
     }
-
-    case 'update_experience_role': {
-      const { experienceId, role, summary } = params;
-      const exp = sharedCvState.experiences.find((e) => e.id === experienceId) || sharedCvState.experiences[0];
-      if (exp) {
-        if (role) exp.role = role;
-        if (summary) exp.summary = summary;
-      }
-      actionResult = { updatedExperience: exp };
-      break;
-    }
-
-    case 'sync_cv': {
-      sharedCvState.version = `v2.${Math.floor(Math.random() * 5) + 5}.1`;
-      sharedCvState.rawCvMetadata = {
-        parserSource: 'Emeron CV Parsing Engine v2.5 (Jarvis-Triggered)',
-        confidenceScore: 0.998,
-        parsedAt: new Date().toISOString(),
-        checksum: `sha256:${Math.random().toString(36).substring(2, 14)}`,
-      };
-      actionResult = { version: sharedCvState.version, checksum: sharedCvState.rawCvMetadata.checksum };
-      break;
-    }
-
-    case 'mark_inquiry_read': {
-      const { inquiryId } = params;
-      const inq = sharedInquiries.find((i) => i.id === inquiryId);
-      if (inq) {
-        inq.status = 'read';
-      }
-      actionResult = { inquiryId, status: inq ? inq.status : 'not_found' };
-      break;
-    }
-
-    case 'test_probe': {
-      actionResult = {
-        pong: true,
-        receivedParams: params,
-        serverTime: new Date().toISOString(),
-      };
-      break;
-    }
-
+    case 'test_probe':
+      return { pong: true, receivedParams: params, serverTime: new Date().toISOString() };
     default:
-      return sendJson(res, 400, { success: false, error: `Unknown action: "${action}"` });
+      return undefined;
   }
-
-  const receipt = recordServerReceipt({
-    actionType: 'JARVIS_ACTION',
-    caller: auth.clientId || 'JarvisAssistant',
-    status: 'SUCCESS',
-    statusCode: 200,
-    latencyMs: performance.now() - start,
-    summary: `Executed autonomous action "${action}"`,
-    payload: { action, params, result: actionResult },
-    details: { clientId: auth.clientId, role: auth.role },
-  });
-
-  return sendJson(res, 200, {
-    success: true,
-    action,
-    result: actionResult,
-    receipt: {
-      receiptId: receipt.receiptId,
-      timestamp: receipt.timestamp,
-      payloadDigest: receipt.payloadDigest,
-      receiptSignature: receipt.receiptSignature,
-      latencyMs: receipt.latencyMs,
-    },
-  });
 }
 
-async function handleEvents(req: any, res: any, auth: any) {
-  if (!auth.isValid) {
-    return sendJson(res, auth.statusCode || 401, {
-      success: false,
-      error: auth.error,
+export default route(async (req, res) => {
+  const path = subpath(req, '/api/jarvis');
+  const startedAt = performance.now();
+
+  if (!path || path === 'ping') {
+    return sendJson(res, 200, {
+      status: 'ok',
+      app: 'myportfolio',
+      name: 'Mohammed Parker — Portfolio',
+      url: env.siteUrl,
+      time: new Date().toISOString(),
     });
   }
 
-  return sendJson(res, 200, {
-    success: true,
-    totalEvents: sharedAuditReceipts.length,
-    events: sharedAuditReceipts.slice(0, 30),
-    timestamp: new Date().toISOString(),
-  });
-}
+  const auth = authenticate(req);
+  if (!requireRole(res, auth, ['jarvis_master'])) return;
 
-export default async function handler(req: any, res: any) {
-  if (handleCors(req, res)) return;
+  if (path === 'schema') {
+    const base = env.siteUrl;
+    return sendJson(res, 200, {
+      schemaVersion: '3.0.0',
+      app: 'myportfolio',
+      description: 'Public online CV of Mohammed Parker. Jarvis can read everything and edit the live CV.',
+      auth: 'Send the key as "Authorization: Bearer <key>" or "x-jarvis-key: <key>".',
+      endpoints: [
+        { method: 'GET', path: '/api/jarvis/ping', description: 'Connectivity check (no key).' },
+        { method: 'GET', path: '/api/jarvis/schema', description: 'This document.' },
+        { method: 'GET', path: '/api/jarvis/state', description: 'CV, projects, telemetry, enquiries and recent receipts.' },
+        { method: 'POST', path: '/api/jarvis/action', description: 'Body { action, params }. See actions.' },
+        { method: 'GET', path: '/api/jarvis/events', description: 'Audit receipts, newest first. ?limit=1..100' },
+        { method: 'GET', path: '/api/contact', description: 'Contact enquiries.' },
+        { method: 'GET|POST', path: '/api/sync-cv', description: 'Read CV version / push a partial CV.' },
+        { method: 'GET', path: '/api/telemetry', description: 'View and click counters.' },
+        { method: 'GET', path: '/api/dashboard/portal', description: 'Dashboard manifest for the ecosystem hub.' },
+        { method: 'GET', path: '/api/health', description: 'Integration status (details with a key).' },
+      ].map((e) => ({ ...e, url: `${base}${e.path}` })),
+      actions: ACTIONS,
+      storage: storageMode(),
+    });
+  }
 
-  const urlObj = new URL(req.url || '', 'http://localhost');
-  const rawSubpath = Array.isArray(req.query?.slug)
-    ? req.query.slug.join('/')
-    : (req.query?.slug || urlObj.pathname.replace(/^\/api\/jarvis\/?/, ''));
-  const subpath = (rawSubpath || '').split('?')[0].replace(/^\//, '').replace(/\/$/, '');
+  if (path === 'state') {
+    return sendJson(res, 200, { success: true, snapshotAt: new Date().toISOString(), ...(await snapshot()) });
+  }
 
-  const start = performance.now();
-  const auth = checkAuth(req);
-  const origin = req.headers.host ? `https://${req.headers.host}` : 'https://portfolio.arpcloudsolutions.co.za';
+  if (path === 'events') {
+    const limit = Math.min(100, Math.max(1, Number(new URL(req.url, 'http://x').searchParams.get('limit')) || 30));
+    const events = await listEvents(limit);
+    return sendJson(res, 200, { success: true, total: events.length, events });
+  }
 
-  if (!subpath || subpath === 'ping') {
-    return handlePing(req, res, start, auth, origin);
-  }
-  if (subpath === 'schema') {
-    return handleSchema(req, res, start, auth);
-  }
-  if (subpath === 'state') {
-    return handleState(req, res, start, auth);
-  }
-  if (subpath === 'action') {
-    return handleAction(req, res, start, auth);
-  }
-  if (subpath === 'events') {
-    return handleEvents(req, res, auth);
+  if (path === 'action') {
+    if (req.method !== 'POST') return methodNotAllowed(res, ['POST']);
+    const body = await readJson(req);
+    const action = String(body.action || '');
+    const params = body.params && typeof body.params === 'object' ? body.params : {};
+
+    let result;
+    try {
+      result = await runAction(action, params);
+    } catch (e) {
+      if (e instanceof ValidationError) {
+        await recordEvent({
+          actionType: 'JARVIS_ACTION',
+          caller: auth.clientId!,
+          status: 'FAILED',
+          statusCode: 400,
+          startedAt,
+          summary: `Action "${action}" rejected: ${e.message}`,
+          payload: { action, params },
+        });
+        return sendJson(res, 400, { success: false, action, error: e.message });
+      }
+      throw e;
+    }
+    if (result === undefined) {
+      return sendJson(res, 400, {
+        success: false,
+        error: `Unknown action "${action}".`,
+        availableActions: ACTIONS.map((a) => a.action),
+      });
+    }
+
+    const receipt = await recordEvent({
+      actionType: 'JARVIS_ACTION',
+      caller: auth.clientId!,
+      status: 'SUCCESS',
+      statusCode: 200,
+      startedAt,
+      summary: `Executed "${action}".`,
+      payload: { action, params },
+    });
+    return sendJson(res, 200, {
+      success: true,
+      action,
+      result,
+      receipt: {
+        receiptId: receipt.receiptId,
+        timestamp: receipt.timestamp,
+        payloadDigest: receipt.payloadDigest,
+        receiptSignature: receipt.receiptSignature,
+      },
+    });
   }
 
   return sendJson(res, 404, {
-    error: `Unknown Jarvis sub-endpoint: "${subpath}"`,
-    availableEndpoints: ['ping', 'schema', 'state', 'action', 'events'],
+    success: false,
+    error: `Unknown Jarvis endpoint "${path}".`,
+    available: ['ping', 'schema', 'state', 'action', 'events'],
   });
-}
+});
