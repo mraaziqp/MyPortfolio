@@ -5626,8 +5626,13 @@ async function getProjects() {
 // api_src/profile.ts
 var profile_default = route(async (req, res) => {
   if (req.method !== "GET" && req.method !== "HEAD") return methodNotAllowed(res, ["GET"]);
-  const [profile, projects] = await Promise.all([getProfile(), getProjects()]);
-  sendJson(res, 200, { profile, projects }, "public, max-age=0, s-maxage=30, stale-while-revalidate=300");
+  try {
+    const [profile, projects] = await Promise.all([getProfile(), getProjects()]);
+    sendJson(res, 200, { profile, projects }, "public, max-age=0, s-maxage=30, stale-while-revalidate=300");
+  } catch (e) {
+    console.error("[profile] storage unavailable, serving bundled CV", e);
+    sendJson(res, 200, { profile: INITIAL_CV_DATA, projects: SHOWCASE_PROJECTS, fallback: true }, "public, max-age=0, s-maxage=10");
+  }
 });
 export {
   profile_default as default

@@ -9,6 +9,7 @@ import { env } from './_lib/env';
 import { authenticate, clientIp, methodNotAllowed, readJson, requireRole, route, sendJson, sha256 } from './_lib/http';
 import { sendOwnerEmail, sendToJarvis } from './_lib/notify';
 import {
+  Inquiry,
   countRecentInquiries,
   getProfile,
   insertInquiry,
@@ -18,6 +19,7 @@ import {
   storageMode,
 } from './_lib/store';
 import { EMAIL_RE, ValidationError, str } from './_lib/validate';
+import { INITIAL_CV_DATA } from '../src/data/initialData';
 
 const CATEGORIES = ['recruiting', 'engineering', 'infrastructure', 'consulting', 'general'] as const;
 const MAX_PER_HOUR = 5;
@@ -56,17 +58,26 @@ export default route(async (req, res) => {
   const category = (CATEGORIES as readonly string[]).includes(body.category) ? body.category : 'general';
 
   const ipHash = sha256(`portfolio-contact:${clientIp(req)}`);
-  if ((await countRecentInquiries(ipHash, 60)) >= MAX_PER_HOUR) {
+  if ((await countRecentInquiries(ipHash, 60).catch(() => 0)) >= MAX_PER_HOUR) {
     return sendJson(res, 429, {
       success: false,
       error: 'Too many messages from this connection. Please email directly instead.',
     });
   }
 
-  const persisted = storageMode() === 'postgres';
-  const inquiry = await insertInquiry({ name, email, organization: organization || null, subject, message, category }, ipHash);
+  // If the database is down, still try to email the message rather than lose it.
+  const input = { name, email, organization: organization || null, subject, message, category };
+  let persisted = storageMode() === 'postgres';
+  let inquiry: Inquiry;
+  try {
+    inquiry = await insertInquiry(input, ipHash);
+  } catch (e) {
+    console.error('[contact] could not store enquiry', e);
+    persisted = false;
+    inquiry = { ...input, id: `inq_unsaved_${Date.now()}`, createdAt: new Date().toISOString(), status: 'new', emailDelivered: false, jarvisDelivered: false, receiptId: null };
+  }
 
-  const profile = await getProfile();
+  const profile = await getProfile().catch(() => INITIAL_CV_DATA);
   const fields: Array<[string, string]> = [
     ['From', `${name} <${email}>`],
     ['Company', organization || '—'],
@@ -105,11 +116,13 @@ export default route(async (req, res) => {
       jarvis: jarvisResult.delivered ? 'sent' : jarvisResult.error,
     },
   });
-  await markInquiryDelivery(inquiry.id, {
-    emailDelivered: emailResult.delivered,
-    jarvisDelivered: jarvisResult.delivered,
-    receiptId: receipt.receiptId,
-  });
+  if (persisted) {
+    await markInquiryDelivery(inquiry.id, {
+      emailDelivered: emailResult.delivered,
+      jarvisDelivered: jarvisResult.delivered,
+      receiptId: receipt.receiptId,
+    }).catch((e) => console.error('[contact] could not record delivery', e));
+  }
 
   if (!emailResult.delivered) console.warn('[contact] email not delivered:', emailResult.error);
   if (!received) {

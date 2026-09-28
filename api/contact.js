@@ -5848,15 +5848,23 @@ var contact_default = route(async (req, res) => {
   }
   const category = CATEGORIES.includes(body.category) ? body.category : "general";
   const ipHash = sha256(`portfolio-contact:${clientIp(req)}`);
-  if (await countRecentInquiries(ipHash, 60) >= MAX_PER_HOUR) {
+  if (await countRecentInquiries(ipHash, 60).catch(() => 0) >= MAX_PER_HOUR) {
     return sendJson(res, 429, {
       success: false,
       error: "Too many messages from this connection. Please email directly instead."
     });
   }
-  const persisted = storageMode() === "postgres";
-  const inquiry = await insertInquiry({ name, email, organization: organization || null, subject, message, category }, ipHash);
-  const profile = await getProfile();
+  const input = { name, email, organization: organization || null, subject, message, category };
+  let persisted = storageMode() === "postgres";
+  let inquiry;
+  try {
+    inquiry = await insertInquiry(input, ipHash);
+  } catch (e) {
+    console.error("[contact] could not store enquiry", e);
+    persisted = false;
+    inquiry = { ...input, id: `inq_unsaved_${Date.now()}`, createdAt: (/* @__PURE__ */ new Date()).toISOString(), status: "new", emailDelivered: false, jarvisDelivered: false, receiptId: null };
+  }
+  const profile = await getProfile().catch(() => INITIAL_CV_DATA);
   const fields = [
     ["From", `${name} <${email}>`],
     ["Company", organization || "\u2014"],
@@ -5896,11 +5904,13 @@ ${message}`,
       jarvis: jarvisResult.delivered ? "sent" : jarvisResult.error
     }
   });
-  await markInquiryDelivery(inquiry.id, {
-    emailDelivered: emailResult.delivered,
-    jarvisDelivered: jarvisResult.delivered,
-    receiptId: receipt.receiptId
-  });
+  if (persisted) {
+    await markInquiryDelivery(inquiry.id, {
+      emailDelivered: emailResult.delivered,
+      jarvisDelivered: jarvisResult.delivered,
+      receiptId: receipt.receiptId
+    }).catch((e) => console.error("[contact] could not record delivery", e));
+  }
   if (!emailResult.delivered) console.warn("[contact] email not delivered:", emailResult.error);
   if (!received) {
     return sendJson(res, 503, {
