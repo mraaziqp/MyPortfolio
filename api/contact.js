@@ -68,9 +68,18 @@ var BodyError = class extends Error {
   }
 };
 async function readJson(req) {
-  if (req.body !== void 0 && req.body !== null && req.body !== "") {
-    if (typeof req.body === "object" && !Buffer.isBuffer(req.body)) return req.body;
-    return parseJsonText(Buffer.isBuffer(req.body) ? req.body.toString("utf8") : String(req.body));
+  let body;
+  try {
+    body = req.body;
+  } catch {
+    throw new BodyError(400, "Request body is not valid JSON.");
+  }
+  if (body !== void 0 && body !== null && body !== "") {
+    if (typeof body === "object" && !Buffer.isBuffer(body)) {
+      if (Array.isArray(body)) throw new BodyError(400, "Request body must be a JSON object.");
+      return body;
+    }
+    return parseJsonText(Buffer.isBuffer(body) ? body.toString("utf8") : String(body));
   }
   const text = await new Promise((resolve, reject) => {
     let size = 0;

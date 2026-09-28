@@ -49,9 +49,19 @@ export class BodyError extends Error {
 
 /** Parses a JSON body whether or not the platform already did. Rejects oversized or malformed input. */
 export async function readJson(req: any): Promise<Record<string, any>> {
-  if (req.body !== undefined && req.body !== null && req.body !== '') {
-    if (typeof req.body === 'object' && !Buffer.isBuffer(req.body)) return req.body;
-    return parseJsonText(Buffer.isBuffer(req.body) ? req.body.toString('utf8') : String(req.body));
+  let body: unknown;
+  try {
+    // On Vercel `req.body` is a getter that parses lazily and throws on invalid JSON.
+    body = req.body;
+  } catch {
+    throw new BodyError(400, 'Request body is not valid JSON.');
+  }
+  if (body !== undefined && body !== null && body !== '') {
+    if (typeof body === 'object' && !Buffer.isBuffer(body)) {
+      if (Array.isArray(body)) throw new BodyError(400, 'Request body must be a JSON object.');
+      return body as Record<string, any>;
+    }
+    return parseJsonText(Buffer.isBuffer(body) ? body.toString('utf8') : String(body));
   }
 
   const text = await new Promise<string>((resolve, reject) => {
