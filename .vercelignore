@@ -3,3 +3,6 @@
 node_modules
 .claude
 dist
+.neon
+.mcp.json
+skills-lock.json
