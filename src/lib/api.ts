@@ -7,12 +7,12 @@ export interface ProfileState {
   projects: ProjectShowcaseItem[];
 }
 
-const REFRESH_MS = 2 * 60_000;
+const REFRESH_MS = 5 * 60_000;
 
 /**
  * Renders the CV bundled with the site immediately, then swaps in the live
  * copy from /api/profile (which reflects Emeron / Jarvis updates) and keeps it
- * current: it refetches when the tab regains focus and every two minutes while
+ * current: it refetches when the tab regains focus and every five minutes while
  * visible. If the API is unreachable the bundled CV simply stays.
  */
 export function useProfile(): ProfileState {

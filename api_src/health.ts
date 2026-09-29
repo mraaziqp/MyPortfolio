@@ -6,7 +6,7 @@
 import { env } from './_lib/env';
 import { authenticate, methodNotAllowed, route, sendJson } from './_lib/http';
 import { jarvisHostForDisplay } from './_lib/notify';
-import { pingStorage, storageMode } from './_lib/store';
+import { pingStorage, storageBreaker, storageMode } from './_lib/store';
 
 async function resendStatus() {
   if (!env.resendApiKey) return { configured: false };
@@ -37,6 +37,7 @@ export default route(async (req, res) => {
     return sendJson(res, 200, { status: 'ok', time: new Date().toISOString() });
   }
 
+  const breaker = storageBreaker();
   const [storage, email] = await Promise.all([pingStorage(), resendStatus()]);
   let dbHost: string | null = null;
   try {
@@ -49,7 +50,7 @@ export default route(async (req, res) => {
     status: storage.ok ? 'ok' : 'degraded',
     time: new Date().toISOString(),
     environment: process.env.VERCEL_ENV || 'local',
-    storage: { mode: storageMode(), host: dbHost, ...storage },
+    storage: { mode: storageMode(), host: dbHost, ...storage, breakerWasOpen: breaker.open },
     email: { ...email, notifyTo: env.notifyEmail ? 'NOTIFY_EMAIL' : 'CV email (NOTIFY_EMAIL unset)' },
     jarvisWebhook: { configured: Boolean(jarvisHostForDisplay()), host: jarvisHostForDisplay() },
     keys: { jarvis: Boolean(env.jarvisApiKey), portfolio: Boolean(env.portfolioApiKey) },

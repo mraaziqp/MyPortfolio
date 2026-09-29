@@ -155,6 +155,10 @@ function route(handler) {
       await handler(req, res);
     } catch (e) {
       if (e instanceof BodyError) return sendJson(res, e.status, { success: false, error: e.message });
+      if (e?.name === "StorageUnavailableError") {
+        res.setHeader("Retry-After", "60");
+        return sendJson(res, 503, { success: false, error: e.message, retryable: true });
+      }
       console.error("[api]", req.method, req.url, e);
       if (!res.headersSent) sendJson(res, 500, { success: false, error: "Internal error." });
     }
@@ -5552,8 +5556,34 @@ var INITIAL_CV_DATA = {
 
 // api_src/_lib/store.ts
 var clone = (value) => JSON.parse(JSON.stringify(value));
-var sql = env.databaseUrl ? cs(env.databaseUrl) : null;
+var rawSql = env.databaseUrl ? cs(env.databaseUrl) : null;
 var schemaReady = null;
+var StorageUnavailableError = class extends Error {
+  constructor(reason) {
+    super(`Storage temporarily unavailable: ${reason}`);
+    this.reason = reason;
+    this.name = "StorageUnavailableError";
+  }
+};
+var BREAKER_MS = 6e4;
+var unavailableUntil = 0;
+var lastFailure = "";
+function describe(e) {
+  const msg = String(e?.message || e || "unknown error");
+  if (/HTTP status 402|exceeded the quota/i.test(msg)) return "database plan quota exceeded";
+  return msg.slice(0, 160);
+}
+var guarded = (async (strings, ...values) => {
+  if (Date.now() < unavailableUntil) throw new StorageUnavailableError(lastFailure);
+  try {
+    return await rawSql(strings, ...values);
+  } catch (e) {
+    lastFailure = describe(e);
+    unavailableUntil = Date.now() + BREAKER_MS;
+    throw new StorageUnavailableError(lastFailure);
+  }
+});
+var sql = rawSql ? guarded : null;
 function ensureSchema() {
   if (!sql) return Promise.resolve();
   if (!schemaReady) {

@@ -100,6 +100,10 @@ function route(handler) {
       await handler(req, res);
     } catch (e) {
       if (e instanceof BodyError) return sendJson(res, e.status, { success: false, error: e.message });
+      if (e?.name === "StorageUnavailableError") {
+        res.setHeader("Retry-After", "60");
+        return sendJson(res, 503, { success: false, error: e.message, retryable: true });
+      }
       console.error("[api]", req.method, req.url, e);
       if (!res.headersSent) sendJson(res, 500, { success: false, error: "Internal error." });
     }
@@ -5352,8 +5356,38 @@ var export_escapeLiteral = ct.escapeLiteral;
 var export_types = ct.types;
 
 // api_src/_lib/store.ts
-var sql = env.databaseUrl ? cs(env.databaseUrl) : null;
+var rawSql = env.databaseUrl ? cs(env.databaseUrl) : null;
 var schemaReady = null;
+var StorageUnavailableError = class extends Error {
+  constructor(reason) {
+    super(`Storage temporarily unavailable: ${reason}`);
+    this.reason = reason;
+    this.name = "StorageUnavailableError";
+  }
+};
+var BREAKER_MS = 6e4;
+var unavailableUntil = 0;
+var lastFailure = "";
+function describe(e) {
+  const msg = String(e?.message || e || "unknown error");
+  if (/HTTP status 402|exceeded the quota/i.test(msg)) return "database plan quota exceeded";
+  return msg.slice(0, 160);
+}
+function storageBreaker() {
+  const left = unavailableUntil - Date.now();
+  return { open: left > 0, reason: left > 0 ? lastFailure : null, retryInSeconds: Math.max(0, Math.ceil(left / 1e3)) };
+}
+var guarded = (async (strings, ...values) => {
+  if (Date.now() < unavailableUntil) throw new StorageUnavailableError(lastFailure);
+  try {
+    return await rawSql(strings, ...values);
+  } catch (e) {
+    lastFailure = describe(e);
+    unavailableUntil = Date.now() + BREAKER_MS;
+    throw new StorageUnavailableError(lastFailure);
+  }
+});
+var sql = rawSql ? guarded : null;
 function ensureSchema() {
   if (!sql) return Promise.resolve();
   if (!schemaReady) {
@@ -5417,11 +5451,12 @@ async function pingStorage() {
   const start = Date.now();
   if (!sql) return { ok: true, latencyMs: 0 };
   try {
+    unavailableUntil = 0;
     await db();
     await sql`SELECT 1`;
     return { ok: true, latencyMs: Date.now() - start };
   } catch (e) {
-    return { ok: false, latencyMs: Date.now() - start, error: e?.message || "unreachable" };
+    return { ok: false, latencyMs: Date.now() - start, error: e instanceof StorageUnavailableError ? e.reason : describe(e) };
   }
 }
 
@@ -5450,6 +5485,7 @@ var health_default = route(async (req, res) => {
   if (!auth.ok || auth.role !== "jarvis_master") {
     return sendJson(res, 200, { status: "ok", time: (/* @__PURE__ */ new Date()).toISOString() });
   }
+  const breaker = storageBreaker();
   const [storage, email] = await Promise.all([pingStorage(), resendStatus()]);
   let dbHost = null;
   try {
@@ -5461,7 +5497,7 @@ var health_default = route(async (req, res) => {
     status: storage.ok ? "ok" : "degraded",
     time: (/* @__PURE__ */ new Date()).toISOString(),
     environment: process.env.VERCEL_ENV || "local",
-    storage: { mode: storageMode(), host: dbHost, ...storage },
+    storage: { mode: storageMode(), host: dbHost, ...storage, breakerWasOpen: breaker.open },
     email: { ...email, notifyTo: env.notifyEmail ? "NOTIFY_EMAIL" : "CV email (NOTIFY_EMAIL unset)" },
     jarvisWebhook: { configured: Boolean(jarvisHostForDisplay()), host: jarvisHostForDisplay() },
     keys: { jarvis: Boolean(env.jarvisApiKey), portfolio: Boolean(env.portfolioApiKey) }

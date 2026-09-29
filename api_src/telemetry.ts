@@ -4,6 +4,7 @@
  *
  * Only known slugs are counted, so the table cannot be filled with junk rows.
  */
+import { SHOWCASE_PROJECTS } from '../src/data/initialData';
 import { authenticate, methodNotAllowed, readJson, requireRole, route, sendJson } from './_lib/http';
 import { TELEMETRY_EVENTS, TelemetryEvent, getProjects, getTelemetry, inquiryCounts, incrementTelemetry } from './_lib/store';
 
@@ -12,12 +13,14 @@ export default route(async (req, res) => {
     const body = await readJson(req);
     const slug = typeof body.slug === 'string' ? body.slug : body.projectSlug;
     const event = (body.event ?? body.eventType) as TelemetryEvent;
-    const known = slug === 'site' || (await getProjects()).some((p) => p.slug === slug);
+    const projects = await getProjects().catch(() => SHOWCASE_PROJECTS);
+    const known = slug === 'site' || projects.some((p) => p.slug === slug);
 
     if (!known || !TELEMETRY_EVENTS.includes(event)) {
       return sendJson(res, 400, { success: false, error: 'Unknown slug or event.' });
     }
-    await incrementTelemetry(slug, event);
+    // A counter is never worth an error in a visitor's console: drop it if storage is down.
+    await incrementTelemetry(slug, event).catch((e) => console.warn('[telemetry] dropped:', e?.message));
     res.statusCode = 204;
     return res.end();
   }

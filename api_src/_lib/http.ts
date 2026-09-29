@@ -175,6 +175,10 @@ export function route(handler: (req: any, res: any) => Promise<void>) {
       await handler(req, res);
     } catch (e: any) {
       if (e instanceof BodyError) return sendJson(res, e.status, { success: false, error: e.message });
+      if (e?.name === 'StorageUnavailableError') {
+        res.setHeader('Retry-After', '60');
+        return sendJson(res, 503, { success: false, error: e.message, retryable: true });
+      }
       console.error('[api]', req.method, req.url, e);
       if (!res.headersSent) sendJson(res, 500, { success: false, error: 'Internal error.' });
     }

@@ -12,7 +12,7 @@ export default route(async (req, res) => {
   if (req.method !== 'GET' && req.method !== 'HEAD') return methodNotAllowed(res, ['GET']);
   try {
     const [profile, projects] = await Promise.all([getProfile(), getProjects()]);
-    sendJson(res, 200, { profile, projects }, 'public, max-age=0, s-maxage=5, stale-while-revalidate=30');
+    sendJson(res, 200, { profile, projects }, 'public, max-age=0, s-maxage=15, stale-while-revalidate=300');
   } catch (e) {
     // Storage trouble must never blank the CV: serve the bundled copy, briefly cached.
     console.error('[profile] storage unavailable, serving bundled CV', e);

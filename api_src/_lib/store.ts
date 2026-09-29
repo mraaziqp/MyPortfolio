@@ -62,8 +62,47 @@ const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value));
 // Postgres
 // ---------------------------------------------------------------------------
 
-const sql = env.databaseUrl ? neon(env.databaseUrl) : null;
+const rawSql = env.databaseUrl ? neon(env.databaseUrl) : null;
 let schemaReady: Promise<void> | null = null;
+
+/** Thrown when Postgres cannot be used (quota, outage, network). Routes turn it into a 503. */
+export class StorageUnavailableError extends Error {
+  constructor(public reason: string) {
+    super(`Storage temporarily unavailable: ${reason}`);
+    this.name = 'StorageUnavailableError';
+  }
+}
+
+// Circuit breaker: after a failure, skip the database for a minute rather than
+// making every request wait ~1s for the same error.
+const BREAKER_MS = 60_000;
+let unavailableUntil = 0;
+let lastFailure = '';
+
+function describe(e: any): string {
+  const msg = String(e?.message || e || 'unknown error');
+  if (/HTTP status 402|exceeded the quota/i.test(msg)) return 'database plan quota exceeded';
+  return msg.slice(0, 160);
+}
+
+export function storageBreaker(): { open: boolean; reason: string | null; retryInSeconds: number } {
+  const left = unavailableUntil - Date.now();
+  return { open: left > 0, reason: left > 0 ? lastFailure : null, retryInSeconds: Math.max(0, Math.ceil(left / 1000)) };
+}
+
+type Sql = NonNullable<typeof rawSql>;
+const guarded = (async (strings: TemplateStringsArray, ...values: unknown[]) => {
+  if (Date.now() < unavailableUntil) throw new StorageUnavailableError(lastFailure);
+  try {
+    return await (rawSql as Sql)(strings, ...(values as any[]));
+  } catch (e) {
+    lastFailure = describe(e);
+    unavailableUntil = Date.now() + BREAKER_MS;
+    throw new StorageUnavailableError(lastFailure);
+  }
+}) as unknown as Sql;
+
+const sql: Sql | null = rawSql ? guarded : null;
 
 function ensureSchema(): Promise<void> {
   if (!sql) return Promise.resolve();
@@ -142,11 +181,12 @@ export async function pingStorage(): Promise<{ ok: boolean; latencyMs: number; e
   const start = Date.now();
   if (!sql) return { ok: true, latencyMs: 0 };
   try {
+    unavailableUntil = 0; // an explicit health check always probes for real
     await db();
     await sql`SELECT 1`;
     return { ok: true, latencyMs: Date.now() - start };
   } catch (e: any) {
-    return { ok: false, latencyMs: Date.now() - start, error: e?.message || 'unreachable' };
+    return { ok: false, latencyMs: Date.now() - start, error: e instanceof StorageUnavailableError ? e.reason : describe(e) };
   }
 }
 

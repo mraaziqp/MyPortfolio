@@ -1,5 +1,92 @@
 import { createRequire as __cr } from 'module'; const require = __cr(import.meta.url);
 
+// src/data/initialData.ts
+var SHOWCASE_PROJECTS = [
+  {
+    id: "proj-emeron",
+    slug: "emeron",
+    title: "Emeron",
+    tagline: "Enterprise recruitment platform",
+    description: "End-to-end talent acquisition platform with automated CV parsing, algorithmic candidate shortlisting and role-based client portals.",
+    role: "Full-Stack Developer",
+    category: "Enterprise SaaS",
+    featured: true,
+    status: "live",
+    technologies: ["Next.js", "TypeScript", "PostgreSQL", "CV parsing", "Role-based access"],
+    metrics: [],
+    liveUrl: "https://emeron.co.za"
+  },
+  {
+    id: "proj-hustle-studio",
+    slug: "hustle-studio",
+    title: "Hustle Studio",
+    tagline: "Multi-tenant business operations & point of sale",
+    description: "Multi-tenant business operations platform with point-of-sale, financial tracking and embedded AI copilots. Implemented tenant data isolation and query optimisation for high-availability operation.",
+    role: "Lead Full-Stack Developer",
+    category: "Enterprise SaaS",
+    featured: true,
+    status: "in-development",
+    technologies: ["Next.js", "TypeScript", "PostgreSQL", "Multi-tenancy", "AI copilots"],
+    metrics: []
+  },
+  {
+    id: "proj-lifestack",
+    slug: "lifestack",
+    title: "LifeStack",
+    tagline: "AI-powered project management & personal assistant",
+    description: "Project management and personal assistant web app with intelligent schedule optimisation, automated activity tracking and REST endpoints for personalised productivity workflows.",
+    role: "Full-Stack Engineer",
+    category: "Productivity",
+    featured: true,
+    status: "in-development",
+    technologies: ["Next.js", "React", "TypeScript", "Tailwind CSS", "REST APIs"],
+    metrics: []
+  },
+  {
+    id: "proj-verifiedbizlink",
+    slug: "verifiedbizlink",
+    title: "VerifiedBizLink & TotalL\u0178",
+    tagline: "B2B verification network & service booking platforms",
+    description: "B2B verification network and multi-tenant service booking platforms with custom admin control centres, document vetting pipelines and secure database schemas.",
+    role: "Full-Stack Developer",
+    category: "B2B Platforms",
+    featured: true,
+    status: "live",
+    technologies: ["Next.js", "TypeScript", "PostgreSQL", "Multi-tenant booking", "Admin tooling"],
+    metrics: [],
+    liveUrl: "https://www.verifiedbizlink.co.za",
+    githubUrl: "https://github.com/mraaziqp/VerifiedBizLink",
+    links: [{ label: "totally.co.za", url: "https://www.totally.co.za" }]
+  },
+  {
+    id: "proj-xpfinance",
+    slug: "xpfinance",
+    title: "XPFinance",
+    tagline: "Personal finance & expense analytics",
+    description: "Personal finance and expense management app with interactive analytics dashboards, transaction categorisation and budget tracking.",
+    role: "Full-Stack Developer",
+    category: "FinTech",
+    featured: true,
+    status: "live",
+    technologies: ["Next.js", "TypeScript", "PostgreSQL", "Data visualisation"],
+    metrics: [],
+    liveUrl: "https://www.xpfinance.co.za"
+  },
+  {
+    id: "proj-vr-phobia",
+    slug: "vr-phobia",
+    title: "VR Phobia Therapy",
+    tagline: "Virtual reality exposure therapy",
+    description: "Immersive VR application for controlled exposure therapy, helping people work through phobias. Designed the spatial interaction mechanics, dynamic environments and real-time behavioural feedback loops.",
+    role: "XR Developer",
+    category: "XR & Simulation",
+    featured: true,
+    status: "in-development",
+    technologies: ["Unity", "C#", "Virtual reality", "3D interaction design"],
+    metrics: []
+  }
+];
+
 // api_src/_lib/http.ts
 import { createHash, timingSafeEqual } from "crypto";
 
@@ -151,6 +238,10 @@ function route(handler) {
       await handler(req, res);
     } catch (e) {
       if (e instanceof BodyError) return sendJson(res, e.status, { success: false, error: e.message });
+      if (e?.name === "StorageUnavailableError") {
+        res.setHeader("Retry-After", "60");
+        return sendJson(res, 503, { success: false, error: e.message, retryable: true });
+      }
       console.error("[api]", req.method, req.url, e);
       if (!res.headersSent) sendJson(res, 500, { success: false, error: "Internal error." });
     }
@@ -5391,98 +5482,37 @@ var export_escapeIdentifier = ct.escapeIdentifier;
 var export_escapeLiteral = ct.escapeLiteral;
 var export_types = ct.types;
 
-// src/data/initialData.ts
-var SHOWCASE_PROJECTS = [
-  {
-    id: "proj-emeron",
-    slug: "emeron",
-    title: "Emeron",
-    tagline: "Enterprise recruitment platform",
-    description: "End-to-end talent acquisition platform with automated CV parsing, algorithmic candidate shortlisting and role-based client portals.",
-    role: "Full-Stack Developer",
-    category: "Enterprise SaaS",
-    featured: true,
-    status: "live",
-    technologies: ["Next.js", "TypeScript", "PostgreSQL", "CV parsing", "Role-based access"],
-    metrics: [],
-    liveUrl: "https://emeron.co.za"
-  },
-  {
-    id: "proj-hustle-studio",
-    slug: "hustle-studio",
-    title: "Hustle Studio",
-    tagline: "Multi-tenant business operations & point of sale",
-    description: "Multi-tenant business operations platform with point-of-sale, financial tracking and embedded AI copilots. Implemented tenant data isolation and query optimisation for high-availability operation.",
-    role: "Lead Full-Stack Developer",
-    category: "Enterprise SaaS",
-    featured: true,
-    status: "in-development",
-    technologies: ["Next.js", "TypeScript", "PostgreSQL", "Multi-tenancy", "AI copilots"],
-    metrics: []
-  },
-  {
-    id: "proj-lifestack",
-    slug: "lifestack",
-    title: "LifeStack",
-    tagline: "AI-powered project management & personal assistant",
-    description: "Project management and personal assistant web app with intelligent schedule optimisation, automated activity tracking and REST endpoints for personalised productivity workflows.",
-    role: "Full-Stack Engineer",
-    category: "Productivity",
-    featured: true,
-    status: "in-development",
-    technologies: ["Next.js", "React", "TypeScript", "Tailwind CSS", "REST APIs"],
-    metrics: []
-  },
-  {
-    id: "proj-verifiedbizlink",
-    slug: "verifiedbizlink",
-    title: "VerifiedBizLink & TotalL\u0178",
-    tagline: "B2B verification network & service booking platforms",
-    description: "B2B verification network and multi-tenant service booking platforms with custom admin control centres, document vetting pipelines and secure database schemas.",
-    role: "Full-Stack Developer",
-    category: "B2B Platforms",
-    featured: true,
-    status: "live",
-    technologies: ["Next.js", "TypeScript", "PostgreSQL", "Multi-tenant booking", "Admin tooling"],
-    metrics: [],
-    liveUrl: "https://www.verifiedbizlink.co.za",
-    githubUrl: "https://github.com/mraaziqp/VerifiedBizLink",
-    links: [{ label: "totally.co.za", url: "https://www.totally.co.za" }]
-  },
-  {
-    id: "proj-xpfinance",
-    slug: "xpfinance",
-    title: "XPFinance",
-    tagline: "Personal finance & expense analytics",
-    description: "Personal finance and expense management app with interactive analytics dashboards, transaction categorisation and budget tracking.",
-    role: "Full-Stack Developer",
-    category: "FinTech",
-    featured: true,
-    status: "live",
-    technologies: ["Next.js", "TypeScript", "PostgreSQL", "Data visualisation"],
-    metrics: [],
-    liveUrl: "https://www.xpfinance.co.za"
-  },
-  {
-    id: "proj-vr-phobia",
-    slug: "vr-phobia",
-    title: "VR Phobia Therapy",
-    tagline: "Virtual reality exposure therapy",
-    description: "Immersive VR application for controlled exposure therapy, helping people work through phobias. Designed the spatial interaction mechanics, dynamic environments and real-time behavioural feedback loops.",
-    role: "XR Developer",
-    category: "XR & Simulation",
-    featured: true,
-    status: "in-development",
-    technologies: ["Unity", "C#", "Virtual reality", "3D interaction design"],
-    metrics: []
-  }
-];
-
 // api_src/_lib/store.ts
 var TELEMETRY_EVENTS = ["view", "click"];
 var clone = (value) => JSON.parse(JSON.stringify(value));
-var sql = env.databaseUrl ? cs(env.databaseUrl) : null;
+var rawSql = env.databaseUrl ? cs(env.databaseUrl) : null;
 var schemaReady = null;
+var StorageUnavailableError = class extends Error {
+  constructor(reason) {
+    super(`Storage temporarily unavailable: ${reason}`);
+    this.reason = reason;
+    this.name = "StorageUnavailableError";
+  }
+};
+var BREAKER_MS = 6e4;
+var unavailableUntil = 0;
+var lastFailure = "";
+function describe(e) {
+  const msg = String(e?.message || e || "unknown error");
+  if (/HTTP status 402|exceeded the quota/i.test(msg)) return "database plan quota exceeded";
+  return msg.slice(0, 160);
+}
+var guarded = (async (strings, ...values) => {
+  if (Date.now() < unavailableUntil) throw new StorageUnavailableError(lastFailure);
+  try {
+    return await rawSql(strings, ...values);
+  } catch (e) {
+    lastFailure = describe(e);
+    unavailableUntil = Date.now() + BREAKER_MS;
+    throw new StorageUnavailableError(lastFailure);
+  }
+});
+var sql = rawSql ? guarded : null;
 function ensureSchema() {
   if (!sql) return Promise.resolve();
   if (!schemaReady) {
@@ -5597,11 +5627,12 @@ var telemetry_default = route(async (req, res) => {
     const body = await readJson(req);
     const slug = typeof body.slug === "string" ? body.slug : body.projectSlug;
     const event = body.event ?? body.eventType;
-    const known = slug === "site" || (await getProjects()).some((p2) => p2.slug === slug);
+    const projects2 = await getProjects().catch(() => SHOWCASE_PROJECTS);
+    const known = slug === "site" || projects2.some((p2) => p2.slug === slug);
     if (!known || !TELEMETRY_EVENTS.includes(event)) {
       return sendJson(res, 400, { success: false, error: "Unknown slug or event." });
     }
-    await incrementTelemetry(slug, event);
+    await incrementTelemetry(slug, event).catch((e) => console.warn("[telemetry] dropped:", e?.message));
     res.statusCode = 204;
     return res.end();
   }
