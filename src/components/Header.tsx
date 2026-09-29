@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { Download, Menu, Moon, Sun, X } from 'lucide-react';
+import { Command, Download, Menu, Moon, Sun, X } from 'lucide-react';
 import { Monogram } from './ui';
+import { toggleTheme } from '../lib/theme';
 
 const NAV = [
   { id: 'about', label: 'Profile' },
+  { id: 'services', label: 'Services' },
   { id: 'experience', label: 'Experience' },
   { id: 'projects', label: 'Projects' },
   { id: 'skills', label: 'Skills' },
@@ -11,41 +13,21 @@ const NAV = [
   { id: 'contact', label: 'Contact' },
 ];
 
-type Theme = 'light' | 'dark';
-
-function currentTheme(): Theme {
-  const set = document.documentElement.dataset.theme;
-  if (set === 'light' || set === 'dark') return set;
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-}
-
 function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme>(() => (typeof document === 'undefined' ? 'light' : currentTheme()));
-
-  const toggle = () => {
-    const next: Theme = theme === 'dark' ? 'light' : 'dark';
-    document.documentElement.dataset.theme = next;
-    try {
-      localStorage.setItem('theme', next);
-    } catch {
-      /* storage blocked: the choice lasts for this page view */
-    }
-    setTheme(next);
-  };
-
   return (
     <button
       type="button"
-      onClick={toggle}
-      aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+      onClick={toggleTheme}
+      aria-label="Toggle light or dark theme"
       className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted hover:bg-surface-2 hover:text-ink transition"
     >
-      {theme === 'dark' ? <Sun size={17} /> : <Moon size={17} />}
+      <Sun size={17} className="icon-sun" aria-hidden />
+      <Moon size={17} className="icon-moon" aria-hidden />
     </button>
   );
 }
 
-export function Header({ name }: { name: string }) {
+export function Header({ name, onOpenPalette }: { name: string; onOpenPalette: () => void }) {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState<string>('');
 
@@ -70,10 +52,12 @@ export function Header({ name }: { name: string }) {
     update();
     window.addEventListener('scroll', onScroll, { passive: true });
     window.addEventListener('resize', onScroll);
+    window.addEventListener('load', onScroll); // fonts/images can change section offsets
     return () => {
       cancelAnimationFrame(frame);
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', onScroll);
+      window.removeEventListener('load', onScroll);
     };
   }, []);
 
@@ -92,7 +76,7 @@ export function Header({ name }: { name: string }) {
           <span className="text-[15px]">{name}</span>
         </a>
 
-        <nav aria-label="Sections" className="hidden md:flex items-center gap-1">
+        <nav aria-label="Sections" className="hidden lg:flex items-center gap-0.5">
           {NAV.map((item) => (
             <a
               key={item.id}
@@ -108,6 +92,14 @@ export function Header({ name }: { name: string }) {
         </nav>
 
         <div className="flex items-center gap-1.5">
+          <button
+            type="button"
+            onClick={onOpenPalette}
+            aria-label="Open quick actions (Ctrl+K)"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted hover:bg-surface-2 hover:text-ink transition"
+          >
+            <Command size={17} aria-hidden />
+          </button>
           <ThemeToggle />
           <a
             href="/Mohammed_Parker_CV.pdf"
@@ -119,7 +111,7 @@ export function Header({ name }: { name: string }) {
           </a>
           <button
             type="button"
-            className="md:hidden inline-flex h-9 w-9 items-center justify-center rounded-lg text-ink hover:bg-surface-2"
+            className="lg:hidden inline-flex h-9 w-9 items-center justify-center rounded-lg text-ink hover:bg-surface-2"
             aria-label={open ? 'Close menu' : 'Open menu'}
             aria-expanded={open}
             aria-controls="mobile-nav"
@@ -131,7 +123,7 @@ export function Header({ name }: { name: string }) {
       </div>
 
       {open && (
-        <nav id="mobile-nav" aria-label="Sections" className="md:hidden border-t border-line bg-bg px-4 pb-4 pt-2">
+        <nav id="mobile-nav" aria-label="Sections" className="lg:hidden border-t border-line bg-bg px-4 pb-4 pt-2">
           {NAV.map((item) => (
             <a
               key={item.id}

@@ -16,7 +16,7 @@ export function Section({
 }) {
   return (
     <section id={id} aria-labelledby={`${id}-title`} className="py-14 sm:py-20 border-t border-line">
-      <div className="mb-8 sm:mb-10 max-w-2xl">
+      <div className="reveal mb-8 sm:mb-10 max-w-2xl">
         <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-accent-text">{eyebrow}</p>
         <h2 id={`${id}-title`} className="font-display mt-2 text-2xl sm:text-3xl font-semibold tracking-tight text-ink">
           {title}
