@@ -226,6 +226,36 @@ function ProjectCover({ project }: { project: ProjectShowcaseItem }) {
     .map((w) => w[0])
     .join('');
   const status = project.status ? STATUS[project.status] : null;
+  // A capture of the real site beats a drawn graphic, so projects that have one
+  // show it in a small browser frame. The drawn cover below is the fallback.
+  if (project.previewImage) {
+    return (
+      <div className="relative h-44 overflow-hidden rounded-t-xl border-b border-line bg-surface-2">
+        <div className="flex items-center gap-1.5 border-b border-line bg-surface px-3 py-1.5">
+          <span className="h-2 w-2 rounded-full bg-[#f87171]/70" />
+          <span className="h-2 w-2 rounded-full bg-[#fbbf24]/70" />
+          <span className="h-2 w-2 rounded-full bg-[#4ade80]/70" />
+          <span className="ml-1 truncate font-mono text-[10px] text-subtle">
+            {project.liveUrl ? hostname(project.liveUrl) : project.title}
+          </span>
+          {status && (
+            <span className="ml-auto inline-flex items-center gap-1.5 whitespace-nowrap font-mono text-[10px] text-subtle">
+              <span className={`h-1.5 w-1.5 rounded-full ${status.dot}`} />
+              {status.label}
+            </span>
+          )}
+        </div>
+        <img
+          src={project.previewImage}
+          alt={`The ${project.title} site`}
+          loading="lazy"
+          decoding="async"
+          className="h-[calc(100%-29px)] w-full object-cover object-top transition-transform duration-500 group-hover:scale-[1.03]"
+        />
+      </div>
+    );
+  }
+
   return (
     <div
       className="relative h-28 overflow-hidden rounded-t-xl"
@@ -284,7 +314,7 @@ export function Projects({ projects }: { projects: ProjectShowcaseItem[] }) {
 
       <div className="grid gap-4 sm:gap-5 md:grid-cols-2">
         {shown.map((p) => (
-          <Card key={p.id} className="spotlight flex flex-col">
+          <Card key={p.id} className="spotlight group flex flex-col">
             <ProjectCover project={p} />
             <div className="flex flex-1 flex-col p-5 sm:p-6">
               <h3 className="font-display text-xl font-semibold text-ink">{p.title}</h3>

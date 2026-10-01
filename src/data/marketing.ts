@@ -73,4 +73,6 @@ export const COVERS: Record<string, [string, string]> = {
   'B2B Platforms': ['#0369a1', '#0c4a6e'],
   FinTech: ['#15803d', '#14532d'],
   'XR & Simulation': ['#9333ea', '#581c87'],
+  'Business Platforms': ['#0e7490', '#164e63'],
+  'Consumer Apps': ['#be123c', '#881337'],
 };

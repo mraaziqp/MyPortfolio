@@ -81,6 +81,8 @@ export interface ProjectShowcaseItem {
     label: string;
     value: string;
   }[];
+  /** A capture of the real site, shown as the card's cover. */
+  previewImage?: string;
   liveUrl?: string;
   githubUrl?: string;
   links?: { label: string; url: string }[];
