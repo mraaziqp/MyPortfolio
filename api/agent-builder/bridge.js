@@ -314,7 +314,8 @@ function recordServerReceipt(params) {
   return receipt;
 }
 async function dispatchToJarvisWebhook(params) {
-  const webhookKey = "jb_live_sk_bc8030782491116677c88743d165331284bc6aacad03100a";
+  const webhookKey = process.env.JARVIS_WEBHOOK_KEY;
+  if (!webhookKey) return { success: false, error: "JARVIS_WEBHOOK_KEY is not set" };
   const userId = "a009e210-f221-4de4-9428-dae96d68a39e";
   const urls = [
     `http://localhost:3005/api/assistant/webhook/${webhookKey}`,
@@ -365,7 +366,7 @@ async function handler(req, res) {
       jarvisLocalTarget: "http://localhost:3005",
       jarvisRemoteTarget: "https://jarvis.savestate.co.za",
       supportedClients: ["AgentBuilder-PC", "Antigravity-IDE", "Cursor", "Claude-Desktop"],
-      activeKey: "jb_live_sk_bc8030782491116677c88743d165331284bc6aacad03100a"
+      keyConfigured: Boolean(process.env.JARVIS_WEBHOOK_KEY)
     });
   }
   if (req.method !== "POST") {

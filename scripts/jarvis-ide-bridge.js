@@ -8,9 +8,17 @@
  *   node scripts/jarvis-ide-bridge.js notify "Build Complete" "Vercel deployment finished successfully"
  */
 
+// The key comes from the environment (never this public repository):
+//   JARVIS_WEBHOOK_KEY=jb_live_sk_… node scripts/jarvis-ide-bridge.js ping
+const WEBHOOK_KEY = process.env.JARVIS_WEBHOOK_KEY;
+if (!WEBHOOK_KEY) {
+  console.error('Set JARVIS_WEBHOOK_KEY first (the app key Jarvis gave this integration).');
+  process.exit(1);
+}
+
 const JARVIS_CONFIG = {
-  localWebhookUrl: 'http://localhost:3005/api/assistant/webhook/jb_live_sk_bc8030782491116677c88743d165331284bc6aacad03100a',
-  remoteWebhookUrl: 'https://jarvis.savestate.co.za/api/assistant/webhook/jb_live_sk_bc8030782491116677c88743d165331284bc6aacad03100a',
+  localWebhookUrl: `http://localhost:3005/api/assistant/webhook/${WEBHOOK_KEY}`,
+  remoteWebhookUrl: `https://jarvis.savestate.co.za/api/assistant/webhook/${WEBHOOK_KEY}`,
   userId: 'a009e210-f221-4de4-9428-dae96d68a39e',
   sender: 'AgentBuilder-PC/Antigravity-IDE',
 };

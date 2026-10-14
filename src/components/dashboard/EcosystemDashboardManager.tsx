@@ -482,7 +482,7 @@ export const EcosystemDashboardManager: React.FC<EcosystemDashboardManagerProps>
                 <button
                   onClick={() =>
                     copyToClipboard(
-                      'https://jarvis.savestate.co.za/api/assistant/webhook/jb_live_sk_bc8030782491116677c88743d165331284bc6aacad03100a',
+                      'https://jarvis.savestate.co.za/api/assistant/webhook/<JARVIS_WEBHOOK_KEY>',
                       'Jarvis Webhook URL'
                     )
                   }

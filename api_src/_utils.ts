@@ -167,7 +167,9 @@ export async function dispatchToJarvisWebhook(params: {
   details?: Record<string, any>;
   type?: string;
 }): Promise<{ success: boolean; response?: any; error?: string }> {
-  const webhookKey = 'jb_live_sk_bc8030782491116677c88743d165331284bc6aacad03100a';
+  // From the environment only: the key must never sit in this (public) repository.
+  const webhookKey = process.env.JARVIS_WEBHOOK_KEY;
+  if (!webhookKey) return { success: false, error: 'JARVIS_WEBHOOK_KEY is not set' };
   const userId = 'a009e210-f221-4de4-9428-dae96d68a39e';
 
   const urls = [

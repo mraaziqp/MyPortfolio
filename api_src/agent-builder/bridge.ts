@@ -21,7 +21,7 @@ export default async function handler(req: any, res: any) {
       jarvisLocalTarget: 'http://localhost:3005',
       jarvisRemoteTarget: 'https://jarvis.savestate.co.za',
       supportedClients: ['AgentBuilder-PC', 'Antigravity-IDE', 'Cursor', 'Claude-Desktop'],
-      activeKey: 'jb_live_sk_bc8030782491116677c88743d165331284bc6aacad03100a',
+      keyConfigured: Boolean(process.env.JARVIS_WEBHOOK_KEY),
     });
   }
 
